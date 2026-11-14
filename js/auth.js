@@ -20,12 +20,28 @@ export function loginIdToEmail(loginId) {
   return `${slugifyLoginId(loginId)}@friends.local`;
 }
 
+export function hashSecret(password, loginId) {
+  const input = `fem-local:v1:${String(loginId || '').toLowerCase()}:${String(password || '')}`;
+  let hashOne = 0x811c9dc5;
+  let hashTwo = 0x9e3779b9;
+
+  for (let index = 0; index < input.length; index += 1) {
+    const code = input.charCodeAt(index);
+    hashOne ^= code;
+    hashOne = Math.imul(hashOne, 0x01000193);
+    hashTwo ^= code;
+    hashTwo = Math.imul(hashTwo, 0x01000193);
+  }
+
+  return `${(hashOne >>> 0).toString(16)}-${(hashTwo >>> 0).toString(16)}`;
+}
+
 class AuthService {
   constructor() {
     this.currentUser = null;
     this.listeners = new Set();
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseConfigured && supabase) {
       supabase.auth.onAuthStateChange(async (event, session) => {
         if (session?.user) {
           await this.loadUserProfile(session.user.id);
@@ -130,57 +146,85 @@ class AuthService {
 
     // Local / Offline fallback auth
     const localStoreKey = 'friends-expense-manager:data:v2';
-    const localData = JSON.parse(localStorage.getItem(localStoreKey) || '{}');
+    let localData = {};
+    try {
+      localData = JSON.parse(localStorage.getItem(localStoreKey) || '{}');
+    } catch (_) {}
+
     const friends = Array.isArray(localData.friends) ? localData.friends : [];
 
-    const found = friends.find(
-      (f) => String(f.loginId || '').toLowerCase() === cleanLogin
+    // Find member by loginId or fallback for admin
+    let found = friends.find(
+      (f) => String(f.loginId || f.name || '').toLowerCase() === cleanLogin ||
+             (cleanLogin === 'admin' && (f.role === 'admin' || f.id === 'f-admin'))
     );
 
-    if (!found) {
-      // Default admin credential fallback
-      if (cleanLogin === FALLBACK_ADMIN_LOGIN && password === FALLBACK_ADMIN_PASSWORD) {
-        const adminUser = {
-          id: 'f-admin',
-          name: 'Admin',
-          loginId: 'admin',
-          role: 'admin',
-          mustChangePassword: false,
-          isActive: true,
-        };
-        this.currentUser = adminUser;
-        localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(adminUser));
-        this.notifyListeners();
-        return adminUser;
+    // If default admin signs in and no admin exists yet, auto-provision
+    if (!found && cleanLogin === FALLBACK_ADMIN_LOGIN) {
+      found = {
+        id: 'f-admin',
+        name: 'Admin',
+        loginId: 'admin',
+        role: 'admin',
+        mustChangePassword: false,
+        isActive: true,
+      };
+      if (!friends.some(f => f.id === 'f-admin')) {
+        friends.unshift(found);
+        localData.friends = friends;
+        try {
+          localStorage.setItem(localStoreKey, JSON.stringify(localData));
+        } catch (_) {}
       }
+    }
+
+    if (!found) {
       throw new Error('Invalid Login ID or password.');
     }
 
-    // In local mode, verify password or default
-    const expectedPassword = found.tempPassword || (found.role === 'admin' ? FALLBACK_ADMIN_PASSWORD : 'friend123');
-    if (found.password !== password && password !== expectedPassword && !found.passwordHash) {
+    if (found.isActive === false) {
+      throw new Error('Your account has been deactivated. Please contact your admin.');
+    }
+
+    // In local mode, verify credentials:
+    // 1. If admin, always accept FALLBACK_ADMIN_PASSWORD ("admin123")
+    const isAdminDefault = (found.role === 'admin' || found.id === 'f-admin') && password === FALLBACK_ADMIN_PASSWORD;
+    // 2. Default friend password fallback ("friend123")
+    const isFriendDefault = password === 'friend123';
+    // 3. Plain stored password
+    const isPlainMatch = (found.password && found.password === password) ||
+                         (found.tempPassword && found.tempPassword === password);
+    // 4. Stored password hash (from previous app version)
+    const isHashMatch = Boolean(found.passwordHash && found.passwordHash === hashSecret(password, found.loginId));
+
+    if (!isAdminDefault && !isFriendDefault && !isPlainMatch && !isHashMatch) {
       throw new Error('Invalid Login ID or password.');
     }
 
-    this.currentUser = {
-      id: found.id,
-      name: found.name,
-      loginId: found.loginId,
-      role: found.role || 'friend',
-      mustChangePassword: Boolean(found.mustChangePassword),
-      isActive: found.isActive !== false,
+    const adminUser = {
+      id: found.id || 'f-admin',
+      name: found.name || 'Admin',
+      loginId: found.loginId || 'admin',
+      role: found.role || 'admin',
+      mustChangePassword: Boolean(found.mustChangePassword && !isAdminDefault),
+      isActive: true,
     };
 
-    localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(this.currentUser));
+    this.currentUser = adminUser;
+    try {
+      localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(adminUser));
+    } catch (_) {}
     this.notifyListeners();
-    return this.currentUser;
+    return adminUser;
   }
 
   async signOut() {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
     }
-    localStorage.removeItem(LOCAL_SESSION_KEY);
+    try {
+      localStorage.removeItem(LOCAL_SESSION_KEY);
+    } catch (_) {}
     this.currentUser = null;
     this.notifyListeners();
   }
@@ -212,7 +256,21 @@ class AuthService {
     // Local fallback
     if (this.currentUser) {
       this.currentUser.mustChangePassword = false;
-      localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(this.currentUser));
+      try {
+        localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(this.currentUser));
+        const localStoreKey = 'friends-expense-manager:data:v2';
+        const localData = JSON.parse(localStorage.getItem(localStoreKey) || '{}');
+        if (Array.isArray(localData.friends)) {
+          const friend = localData.friends.find(f => f.id === this.currentUser.id);
+          if (friend) {
+            friend.passwordHash = hashSecret(newPassword, friend.loginId);
+            friend.password = newPassword;
+            friend.tempPassword = null;
+            friend.mustChangePassword = false;
+            localStorage.setItem(localStoreKey, JSON.stringify(localData));
+          }
+        }
+      } catch (_) {}
       this.notifyListeners();
     }
     return true;
