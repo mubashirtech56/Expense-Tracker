@@ -30,7 +30,8 @@ This guide walks you through connecting your **Friends Expense Manager** app to 
 > [!IMPORTANT]
 > `schema.sql` always creates the latest schema from scratch. If your database already
 > exists, apply the incremental files in `supabase/migrations/` in order instead:
-> `002_security_hardening.sql`, then `003_validation_hardening.sql`.
+> `002_security_hardening.sql`, `003_validation_hardening.sql`, then
+> `004_expense_approval.sql` for member expense submissions and admin approval.
 
 ---
 

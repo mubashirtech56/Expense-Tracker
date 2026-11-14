@@ -29,6 +29,9 @@ create table if not exists public.expenses (
   expense_date date not null default current_date,
   payer_id uuid not null references public.profiles(id) on delete restrict,
   created_by uuid references public.profiles(id) on delete set null,
+  status text not null default 'confirmed' check (status in ('pending', 'confirmed', 'rejected')),
+  confirmed_by uuid references public.profiles(id) on delete set null,
+  confirmed_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -320,12 +323,7 @@ drop policy if exists "Authorized users can insert expenses" on public.expenses;
 create policy "Authorized users can insert expenses"
   on public.expenses for insert
   with check (
-    public.is_admin() or
-    (
-      public.is_active_member() and
-      payer_id = auth.uid() and
-      (select allow_friends_to_add_expenses from public.settings where id = 1) = true
-    )
+    public.is_admin()
   );
 
 drop policy if exists "Admins can update expenses" on public.expenses;
@@ -333,12 +331,7 @@ drop policy if exists "Authorized users can update expenses" on public.expenses;
 create policy "Authorized users can update expenses"
   on public.expenses for update
   using (
-    public.is_admin() or
-    (
-      public.is_active_member() and
-      payer_id = auth.uid() and
-      (select allow_friends_to_add_expenses from public.settings where id = 1) = true
-    )
+    public.is_admin()
   );
 
 drop policy if exists "Admins can delete expenses" on public.expenses;
@@ -471,6 +464,7 @@ declare
   v_share_amount numeric(10,2);
   v_friend_active boolean;
   v_result jsonb;
+  v_status text;
 begin
   v_caller := auth.uid();
   if v_caller is null then
@@ -478,14 +472,12 @@ begin
   end if;
 
   v_is_admin := public.is_admin();
-  select allow_friends_to_add_expenses into v_allow_friends from public.settings where id = 1;
-
-  if not v_is_admin then
-    if not (v_allow_friends and p_payer_id = v_caller) then
-      raise exception 'Forbidden: Only administrators or authorized payers may create expenses.'
-        using errcode = '42501';
-    end if;
+  if not v_is_admin and (not public.is_active_member() or p_payer_id <> v_caller) then
+    raise exception 'Forbidden: Members may only submit expenses for themselves.'
+      using errcode = '42501';
   end if;
+
+  v_status := case when v_is_admin then 'confirmed' else 'pending' end;
 
   if p_amount is null or p_amount <= 0 then
     raise exception 'Expense amount must be strictly greater than 0.' using errcode = '22003';
@@ -533,8 +525,13 @@ begin
       using errcode = '22023';
   end if;
 
-  insert into public.expenses (title, amount, category, expense_date, payer_id, created_by)
-  values (trim(p_title), round(p_amount, 2), p_category, coalesce(p_expense_date, current_date), p_payer_id, v_caller)
+  insert into public.expenses (title, amount, category, expense_date, payer_id, created_by, status, confirmed_by, confirmed_at)
+  values (
+    trim(p_title), round(p_amount, 2), p_category, coalesce(p_expense_date, current_date),
+    p_payer_id, v_caller, v_status,
+    case when v_is_admin then v_caller else null end,
+    case when v_is_admin then now() else null end
+  )
   returning id into v_expense_id;
 
   for v_item in select * from jsonb_array_elements(p_participants) loop
@@ -553,6 +550,9 @@ begin
     'date', e.expense_date,
     'payerId', e.payer_id,
     'createdBy', e.created_by,
+    'status', e.status,
+    'confirmedBy', e.confirmed_by,
+    'confirmedAt', e.confirmed_at,
     'createdAt', e.created_at
   ) into v_result
   from public.expenses e
@@ -579,8 +579,9 @@ as $$
 declare
   v_caller uuid;
   v_is_admin boolean;
-  v_allow_friends boolean;
   v_existing_payer uuid;
+  v_existing_creator uuid;
+  v_existing_status text;
   v_payer_active boolean;
   v_shares_total numeric(10,2) := 0;
   v_item jsonb;
@@ -595,16 +596,19 @@ begin
   end if;
 
   v_is_admin := public.is_admin();
-  select allow_friends_to_add_expenses into v_allow_friends from public.settings where id = 1;
-  select payer_id into v_existing_payer from public.expenses where id = p_expense_id;
+  select payer_id, created_by, status
+  into v_existing_payer, v_existing_creator, v_existing_status
+  from public.expenses where id = p_expense_id;
 
   if v_existing_payer is null then
     raise exception 'Expense not found.' using errcode = 'P0002';
   end if;
 
   if not v_is_admin then
-    if not (v_allow_friends and v_existing_payer = v_caller and p_payer_id = v_caller) then
-      raise exception 'Forbidden: Only administrators or authorized payers may modify this expense.'
+    if v_existing_creator is distinct from v_caller
+       or v_existing_status <> 'pending'
+       or p_payer_id is distinct from v_caller then
+      raise exception 'Forbidden: Members may only edit their own pending expenses.'
         using errcode = '42501';
     end if;
   end if;
@@ -681,6 +685,9 @@ begin
     'date', e.expense_date,
     'payerId', e.payer_id,
     'createdBy', e.created_by,
+    'status', e.status,
+    'confirmedBy', e.confirmed_by,
+    'confirmedAt', e.confirmed_at,
     'createdAt', e.created_at
   ) into v_result
   from public.expenses e
@@ -689,6 +696,36 @@ begin
   return v_result;
 end;
 $$;
+
+create or replace function public.review_expense(p_expense_id uuid, p_status text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Forbidden: Admin access required.' using errcode = '42501';
+  end if;
+
+  if p_status not in ('confirmed', 'rejected') then
+    raise exception 'Expense review status must be confirmed or rejected.' using errcode = '22023';
+  end if;
+
+  update public.expenses
+  set status = p_status,
+      confirmed_by = case when p_status = 'confirmed' then auth.uid() else null end,
+      confirmed_at = case when p_status = 'confirmed' then now() else null end
+  where id = p_expense_id and status = 'pending';
+
+  if not found then
+    raise exception 'Pending expense not found.' using errcode = 'P0002';
+  end if;
+end;
+$$;
+
+revoke all on function public.review_expense(uuid, text) from public;
+grant execute on function public.review_expense(uuid, text) to authenticated;
 
 create or replace function public.reset_all_data(p_confirmation text)
 returns boolean

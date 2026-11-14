@@ -59,6 +59,9 @@ export const api = {
         date: e.expense_date,
         payerId: e.payer_id,
         createdBy: e.created_by,
+        status: e.status || 'confirmed',
+        confirmedBy: e.confirmed_by,
+        confirmedAt: e.confirmed_at,
         createdAt: e.created_at,
         participants: participantsByExpense.get(e.id) || [],
       }));
@@ -174,8 +177,32 @@ export const api = {
     return {
       ...expenseData,
       id: data?.id,
+      status: auth.isAdmin() ? 'confirmed' : 'pending',
+      confirmedBy: auth.isAdmin() ? auth.getCurrentUser()?.id : null,
       createdAt: data?.createdAt || new Date().toISOString(),
     };
+  },
+
+  async reviewExpense(id, status) {
+    if (this.isOffline) {
+      throw new Error('Cannot review expenses while offline. Please reconnect.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
+    }
+    if (!auth.isAdmin()) {
+      throw new Error('Only an administrator can review expenses.');
+    }
+    if (!['confirmed', 'rejected'].includes(status)) {
+      throw new Error('Invalid expense review status.');
+    }
+
+    const { error } = await supabase.rpc('review_expense', {
+      p_expense_id: id,
+      p_status: status,
+    });
+    if (error) throw new Error(error.message || 'Failed to review expense');
+    return true;
   },
 
   async updateExpense(id, expenseData) {

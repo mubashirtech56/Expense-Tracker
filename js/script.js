@@ -236,7 +236,6 @@ const initializeApp = async () => {
   const adminGroupForm = document.getElementById("adminGroupForm");
   const adminGroupName = document.getElementById("adminGroupName");
   const adminGroupBudget = document.getElementById("adminGroupBudget");
-  const adminAllowFriendsAddExpenses = document.getElementById("adminAllowFriendsAddExpenses");
   const adminAuditList = document.getElementById("adminAuditList");
   const refreshAuditBtn = document.getElementById("refreshAuditBtn");
   const adminResetDataBtn = document.getElementById("adminResetDataBtn");
@@ -546,6 +545,7 @@ const initializeApp = async () => {
       let settledReceived = 0;
 
       state.expenses.forEach((expense) => {
+        if ((expense.status || "confirmed") !== "confirmed") return;
         if (expense.payerId === friend.id) {
           paid = roundMoney(paid + Number(expense.amount));
         }
@@ -720,7 +720,7 @@ const initializeApp = async () => {
     const net = stats ? stats.net : 0;
 
     const activity = [];
-    state.expenses.forEach((expense) => {
+    getConfirmedExpenses().forEach((expense) => {
       const isPayer = expense.payerId === friendId;
       const participant = (expense.participants || []).find((p) => p.friendId === friendId);
       if (!isPayer && !participant) return;
@@ -788,9 +788,13 @@ const initializeApp = async () => {
     });
   }
 
+  function getConfirmedExpenses() {
+    return state.expenses.filter((expense) => (expense.status || "confirmed") === "confirmed");
+  }
+
   function getCategoryStats() {
     return Object.entries(CATEGORY_META).map(([key, meta]) => {
-      const matching = state.expenses.filter((e) => e.category === key);
+      const matching = getConfirmedExpenses().filter((e) => e.category === key);
       const amount = matching.reduce((sum, e) => sum + Number(e.amount), 0);
       return {
         key,
@@ -823,7 +827,7 @@ const initializeApp = async () => {
 
   function renderAccessControl() {
     const admin = auth.isAdmin();
-    const canAddExpenses = admin || Boolean(state.allowFriendsToAddExpenses);
+    const canAddExpenses = true;
     document.body.dataset.role = admin ? "admin" : "friend";
 
     navLinks.forEach((link) => {
@@ -859,7 +863,7 @@ const initializeApp = async () => {
     if (sidebarBudgetBar && sidebarBudgetText) {
       const budget = Number(state.budget) || 0;
       const monthKey = getTodayISO().slice(0, 7);
-      const monthTotal = state.expenses
+      const monthTotal = getConfirmedExpenses()
         .filter((expense) => String(expense.date).slice(0, 7) === monthKey)
         .reduce((sum, expense) => sum + Number(expense.amount), 0);
 
@@ -890,6 +894,12 @@ const initializeApp = async () => {
     const payerName = payer?.name || "Unknown";
     const participantNames = listNames(expense.participants.map((p) => p.friendId));
     const manage = Boolean(options.manage);
+    const status = expense.status || "confirmed";
+    const statusLabel = status === "confirmed"
+      ? expense.confirmedBy
+        ? `Confirmed by Admin: ${escapeHtml(getFriendName(expense.confirmedBy))}`
+        : "Confirmed"
+      : status === "pending" ? "Awaiting admin approval" : "Rejected by Admin";
 
     return `
       <article class="expense-row ${manage ? "expense-row--manage" : ""}">
@@ -906,6 +916,8 @@ const initializeApp = async () => {
             ${escapeHtml(formatDate(expense.date))}
             <span>•</span>
             ${expense.participants.length} ${expense.participants.length === 1 ? "person" : "people"}
+            <span>•</span>
+            <span class="badge badge--${status === "confirmed" ? "positive" : status === "pending" ? "warning" : "negative"}">${statusLabel}</span>
           </p>
         </div>
         <div class="expense-row__amount">
@@ -924,6 +936,12 @@ const initializeApp = async () => {
             ` : ""}
           </div>
         ` : ""}
+        ${options.canReview ? `
+          <div class="expense-row__actions">
+            <button class="btn btn--sm btn--primary" type="button" data-review-expense="${escapeHtml(expense.id)}" data-review-status="confirmed">Approve</button>
+            <button class="btn btn--sm btn--soft btn--danger" type="button" data-review-expense="${escapeHtml(expense.id)}" data-review-status="rejected">Reject</button>
+          </div>
+        ` : ""}
       </article>
     `;
   }
@@ -935,9 +953,10 @@ const initializeApp = async () => {
 
   function renderDashboard() {
     const sorted = getSortedExpenses();
-    const total = state.expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+    const confirmedExpenses = getConfirmedExpenses();
+    const total = confirmedExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
     const monthKey = getTodayISO().slice(0, 7);
-    const monthTotal = state.expenses
+    const monthTotal = confirmedExpenses
       .filter((expense) => String(expense.date).slice(0, 7) === monthKey)
       .reduce((sum, expense) => sum + Number(expense.amount), 0);
 
@@ -946,7 +965,7 @@ const initializeApp = async () => {
 
     setStatValue(statTotal, total);
     if (statTotalTrend) statTotalTrend.textContent = monthTotal > 0 ? `${formatMoney(monthTotal)} this month` : "All time";
-    if (statTotalHint) statTotalHint.textContent = `${state.expenses.length} ${state.expenses.length === 1 ? "expense" : "expenses"} tracked`;
+    if (statTotalHint) statTotalHint.textContent = `${confirmedExpenses.length} ${confirmedExpenses.length === 1 ? "expense" : "expenses"} confirmed`;
 
     setStatValue(statReceive, balances.receives);
     if (statReceiveTrend) {
@@ -973,7 +992,7 @@ const initializeApp = async () => {
 
     if (friendsOverviewSub) {
       const activeCount = new Set(
-        state.expenses.flatMap((expense) => (expense.participants || []).map((participant) => participant.friendId))
+        getConfirmedExpenses().flatMap((expense) => (expense.participants || []).map((participant) => participant.friendId))
       ).size;
       const friendWord = stats.length === 1 ? "friend" : "friends";
       friendsOverviewSub.textContent = `${stats.length} ${friendWord} · ${activeCount} sharing expenses · tap a card for history`;
@@ -1026,7 +1045,8 @@ const initializeApp = async () => {
     const total = categories.reduce((sum, category) => sum + category.amount, 0);
 
     if (chartTotal) chartTotal.textContent = formatMoney(total);
-    if (chartChip) chartChip.textContent = `${state.expenses.length} ${state.expenses.length === 1 ? "bill" : "bills"}`;
+    const confirmedCount = getConfirmedExpenses().length;
+    if (chartChip) chartChip.textContent = `${confirmedCount} ${confirmedCount === 1 ? "bill" : "bills"}`;
 
     if (total <= 0) {
       chart.style.background = "conic-gradient(#e2e8f0 0% 100%)";
@@ -1118,16 +1138,13 @@ const initializeApp = async () => {
             <strong class="amount amount--${status.amountClass}">${formatMoney(Math.abs(entry.net))}</strong>
           </div>
 
-          <div class="friend-card__login">
+          ${auth.isAdmin() ? `<div class="friend-card__login">
             <span class="friend-card__login-id">
               <span>Login ID</span>
               <strong>${escapeHtml(entry.friend.loginId || "—")}</strong>
             </span>
-            <span class="friend-card__login-state">${entry.friend.mustChangePassword ? "Temp password active" : "Password set"}</span>
-            ${auth.isAdmin() ? `
-              <button class="btn btn--soft btn--sm" type="button" data-reset-password="${escapeHtml(entry.friend.id)}">Reset password</button>
-            ` : ""}
-          </div>
+            <button class="btn btn--soft btn--sm" type="button" data-reset-password="${escapeHtml(entry.friend.id)}">Reset password</button>
+          </div>` : ""}
         </article>
       `;
     }).join("");
@@ -1381,12 +1398,13 @@ const initializeApp = async () => {
 
     const canManageExpense = (expense) => {
       if (auth.isAdmin()) return true;
-      return Boolean(state.allowFriendsToAddExpenses) && expense.payerId === auth.getCurrentUser()?.id;
+      return expense.status === "pending" && expense.createdBy === auth.getCurrentUser()?.id;
     };
 
     expensesList.innerHTML = filtered.map((expense) => expenseRowMarkup(expense, {
       manage: canManageExpense(expense),
-      canDelete: auth.isAdmin()
+      canDelete: auth.isAdmin(),
+      canReview: auth.isAdmin() && expense.status === "pending"
     })).join("");
   }
 
@@ -1495,14 +1513,15 @@ const initializeApp = async () => {
   }
 
   function renderReports() {
-    const total = state.expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-    const count = state.expenses.length;
+    const confirmedExpenses = getConfirmedExpenses();
+    const total = confirmedExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    const count = confirmedExpenses.length;
     const average = count ? total / count : 0;
     const categories = getCategoryStats().sort((a, b) => b.amount - a.amount);
     const top = categories[0];
 
     const activeFriends = new Set(
-      state.expenses.flatMap((expense) => (expense.participants || []).map((participant) => participant.friendId))
+      confirmedExpenses.flatMap((expense) => (expense.participants || []).map((participant) => participant.friendId))
     ).size;
 
     setStatValue(reportTotal, total);
@@ -1560,7 +1579,7 @@ const initializeApp = async () => {
 
     if (reportMonths) {
       const months = {};
-      state.expenses.forEach((expense) => {
+      confirmedExpenses.forEach((expense) => {
         const key = String(expense.date).slice(0, 7);
         if (!months[key]) months[key] = { amount: 0, count: 0 };
         months[key].amount += Number(expense.amount) || 0;
@@ -1612,10 +1631,6 @@ const initializeApp = async () => {
 
     if (adminGroupName) adminGroupName.value = state.groupName || "Friends Expense Manager";
     if (adminGroupBudget) adminGroupBudget.value = Number(state.budget) || 0;
-    if (adminAllowFriendsAddExpenses) {
-      adminAllowFriendsAddExpenses.checked = Boolean(state.allowFriendsToAddExpenses);
-    }
-
     if (adminMembersList) {
       const search = (adminMemberSearch?.value || "").trim().toLowerCase();
       const filteredFriends = state.friends.filter((f) => {
@@ -1651,9 +1666,6 @@ const initializeApp = async () => {
               <span class="badge badge--${isActive ? "positive" : "negative"}">${isActive ? "Active" : "Deactivated"}</span>
             </td>
             <td>
-              <small>${friend.mustChangePassword ? "Temp password" : "Password set"}</small>
-            </td>
-            <td>
               <div class="admin-actions">
                 ${!isCurrent ? `
                   <button class="btn btn--ghost btn--sm" type="button"
@@ -1684,7 +1696,7 @@ const initializeApp = async () => {
             </td>
           </tr>
         `;
-      }).join("") : `<tr><td colspan="6" class="ledger-empty">No members found matching "${escapeHtml(search)}".</td></tr>`;
+      }).join("") : `<tr><td colspan="5" class="ledger-empty">No members found matching "${escapeHtml(search)}".</td></tr>`;
     }
 
     loadAuditLogs();
@@ -1954,7 +1966,7 @@ const initializeApp = async () => {
     if (!expensePayer) return;
     const friends = getAllActiveFriends();
     const currentUser = auth.getCurrentUser();
-    const isFriendAdding = !auth.isAdmin() && state.allowFriendsToAddExpenses;
+    const isFriendAdding = !auth.isAdmin();
 
     if (!friends.length) {
       expensePayer.innerHTML = `<option value="">Add a member first</option>`;
@@ -2025,10 +2037,10 @@ const initializeApp = async () => {
     const diff = roundMoney(total - assigned);
 
     if (allocationAmount) allocationAmount.textContent = formatMoney(assigned);
-    if (allocationTotal) allocationTotal.textContent = `of ${formatMoney(total)}`;
+    if (allocationTotal) allocationTotal.textContent = formatMoney(total);
 
     const ratio = total > 0 ? Math.min(100, (assigned / total) * 100) : 0;
-    allocationBar.style.width = `${ratio}%`;
+    allocationBar.style.setProperty("--allocated", `${ratio}%`);
 
     if (allocationStatus) {
       if (Math.abs(diff) < 0.005 && total > 0) {
@@ -2076,14 +2088,9 @@ const initializeApp = async () => {
     const isEdit = Boolean(expense);
     const currentUser = auth.getCurrentUser();
 
-    if (!auth.isAdmin() && !state.allowFriendsToAddExpenses) {
-      showToast("Only an administrator can add expenses right now.");
-      return;
-    }
-
     if (isEdit && !auth.isAdmin()) {
-      if (!state.allowFriendsToAddExpenses || expense.payerId !== currentUser?.id) {
-        showToast("You can only edit expenses where you are the payer.");
+      if (expense.status !== "pending" || expense.createdBy !== currentUser?.id) {
+        showToast("You can only edit your own expenses while they are awaiting approval.");
         return;
       }
     }
@@ -2106,7 +2113,7 @@ const initializeApp = async () => {
       expenseCategory.value = "lunch";
       expenseDate.value = getTodayISO();
       const active = getAllActiveFriends();
-      const defaultPayerId = (!auth.isAdmin() && state.allowFriendsToAddExpenses) ? currentUser?.id : active[0]?.id;
+      const defaultPayerId = !auth.isAdmin() ? currentUser?.id : active[0]?.id;
       populatePayerOptions(defaultPayerId);
       const defaultShares = new Map(active.map((f) => [f.id, 0]));
       renderParticipantGrid(defaultShares);
@@ -2123,7 +2130,7 @@ const initializeApp = async () => {
     const category = expenseCategory.value;
     const date = expenseDate.value || getTodayISO();
     const currentUser = auth.getCurrentUser();
-    const payerId = (!auth.isAdmin() && state.allowFriendsToAddExpenses)
+    const payerId = (!auth.isAdmin())
       ? (currentUser?.id || expensePayer.value)
       : expensePayer.value;
 
@@ -2158,7 +2165,7 @@ const initializeApp = async () => {
         showToast("Expense updated.");
       } else {
         await api.createExpense(payload);
-        showToast("Expense added to the group pot.");
+        showToast(auth.isAdmin() ? "Expense added and confirmed." : "Expense submitted for admin approval.");
       }
 
       closeModal(expenseModal);
@@ -2229,6 +2236,16 @@ const initializeApp = async () => {
       await loadAndRenderData();
     } catch (err) {
       showToast(err.message || "Failed to record settlement.");
+    }
+  }
+
+  async function reviewExpense(id, status) {
+    try {
+      await api.reviewExpense(id, status);
+      showToast(status === "confirmed" ? "Expense confirmed by admin." : "Expense rejected.");
+      await loadAndRenderData();
+    } catch (err) {
+      showToast(err.message || "Failed to review expense.");
     }
   }
 
@@ -2698,13 +2715,10 @@ const initializeApp = async () => {
     event.preventDefault();
     const groupName = adminGroupName.value.trim() || "Friends Expense Manager";
     const budget = roundMoney(Number(adminGroupBudget.value) || 0);
-    const allowFriendsToAddExpenses = Boolean(adminAllowFriendsAddExpenses?.checked);
-
     try {
-      await api.updateSettings({ groupName, budget, allowFriendsToAddExpenses });
+      await api.updateSettings({ groupName, budget });
       state.groupName = groupName;
       state.budget = budget;
-      state.allowFriendsToAddExpenses = allowFriendsToAddExpenses;
       renderSidebar();
       renderAll();
       showToast("Group identity and permissions saved.");
@@ -3002,6 +3016,12 @@ const initializeApp = async () => {
     const deleteExpenseTarget = event.target.closest("[data-delete-expense]");
     if (deleteExpenseTarget) {
       deleteExpense(deleteExpenseTarget.dataset.deleteExpense);
+      return;
+    }
+
+    const reviewExpenseTarget = event.target.closest("[data-review-expense]");
+    if (reviewExpenseTarget) {
+      reviewExpense(reviewExpenseTarget.dataset.reviewExpense, reviewExpenseTarget.dataset.reviewStatus);
       return;
     }
 
