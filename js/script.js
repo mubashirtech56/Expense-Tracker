@@ -2890,13 +2890,39 @@ const initializeApp = async () => {
       if (offlineBanner) {
         offlineBanner.hidden = !fresh.isOffline;
       }
+      if (fresh.isOffline) startOfflineLogoutTimer();
+      else clearOfflineLogoutTimer();
     } catch (err) {
       console.warn("Error loading state:", err);
       if (offlineBanner) offlineBanner.hidden = false;
+      startOfflineLogoutTimer();
     }
   }
 
   let unsubscribeRealtime = null;
+  let offlineLogoutTimer = null;
+
+  function clearOfflineLogoutTimer() {
+    if (offlineLogoutTimer !== null) {
+      window.clearTimeout(offlineLogoutTimer);
+      offlineLogoutTimer = null;
+    }
+  }
+
+  function startOfflineLogoutTimer() {
+    if (offlineLogoutTimer !== null || (navigator.onLine && !api.isOffline) || !auth.getCurrentUser()) return;
+    offlineLogoutTimer = window.setTimeout(async () => {
+      offlineLogoutTimer = null;
+      if ((!navigator.onLine || api.isOffline) && auth.getCurrentUser()) {
+        await auth.signOut();
+      }
+    }, 60_000);
+  }
+
+  window.addEventListener("offline", startOfflineLogoutTimer);
+  window.addEventListener("online", async () => {
+    if (auth.getCurrentUser()) await loadAndRenderData();
+  });
 
   auth.onAuthStateChange(async (user) => {
     if (!isSupabaseConfigured) {
@@ -2912,6 +2938,8 @@ const initializeApp = async () => {
       loginScreen.hidden = true;
       appShell.hidden = false;
       state.currentUserId = user.id;
+      if (navigator.onLine) clearOfflineLogoutTimer();
+      else startOfflineLogoutTimer();
 
       if (!unsubscribeRealtime) {
         unsubscribeRealtime = api.subscribeToChanges(() => {
@@ -2927,6 +2955,7 @@ const initializeApp = async () => {
         openModal(forcePasswordModal);
       }
     } else {
+      clearOfflineLogoutTimer();
       if (unsubscribeRealtime) {
         unsubscribeRealtime();
         unsubscribeRealtime = null;

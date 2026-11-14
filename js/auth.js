@@ -14,13 +14,15 @@ class AuthService {
   constructor() {
     this.currentUser = null;
     this.listeners = new Set();
+    this.authInitialized = !isSupabaseConfigured || !supabase;
 
     if (isSupabaseConfigured && supabase) {
       supabase.auth.onAuthStateChange((event, session) => {
         // Requirement 13: Do not await Supabase calls inside onAuthStateChange; defer with setTimeout(..., 0)
         setTimeout(async () => {
           if (session?.user) {
-            const profile = await this.loadUserProfile(session.user.id);
+            const profile = await this.loadUserProfile(session.user.id, false);
+            this.authInitialized = true;
             // A valid session without an active profile is unusable; drop it so
             // the UI falls back to the login screen instead of staying blank.
             if (!profile || !profile.isActive) {
@@ -29,8 +31,11 @@ class AuthService {
               } catch (_) {}
               this.currentUser = null;
               this.notifyListeners();
+            } else {
+              this.notifyListeners();
             }
           } else {
+            this.authInitialized = true;
             this.currentUser = null;
             this.notifyListeners();
           }
@@ -41,7 +46,7 @@ class AuthService {
 
   onAuthStateChange(callback) {
     this.listeners.add(callback);
-    callback(this.currentUser);
+    if (this.authInitialized) callback(this.currentUser);
     return () => this.listeners.delete(callback);
   }
 
@@ -55,7 +60,7 @@ class AuthService {
     });
   }
 
-  async loadUserProfile(userId) {
+  async loadUserProfile(userId, notify = true) {
     if (!isSupabaseConfigured || !supabase) return null;
     try {
       const { data, error } = await supabase
@@ -81,7 +86,7 @@ class AuthService {
 
       // Do not announce deactivated accounts: the auth flow signs them out
       // instead of rendering the app with a stale session.
-      if (this.currentUser.isActive) {
+      if (this.currentUser.isActive && notify) {
         this.notifyListeners();
       }
       return this.currentUser;
