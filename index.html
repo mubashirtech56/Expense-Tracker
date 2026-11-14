@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Friends Expense Manager — a shared dashboard for tracking meals, contributions, balances and settlements backed by Supabase.">
+  <meta name="description"
+    content="Friends Expense Manager — a shared dashboard for tracking meals, contributions, balances and settlements backed by Supabase.">
   <meta name="theme-color" content="#0b1426">
   <title>Friends Expense Manager — Dashboard</title>
 
@@ -11,7 +13,8 @@
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script type="importmap">
     {
@@ -21,6 +24,7 @@
     }
   </script>
 </head>
+
 <body>
   <a class="skip-link" href="#mainContent">Skip to content</a>
 
@@ -29,11 +33,12 @@
     <div class="login-card">
       <div class="login-brand">
         <span class="brand__mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         </span>
         <span class="brand__text">
@@ -51,17 +56,21 @@
       <form class="login-form" id="loginForm" novalidate>
         <div class="field">
           <label for="loginId">Login ID</label>
-          <input type="text" id="loginId" name="loginId" placeholder="e.g. alice or admin" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+          <input type="text" id="loginId" name="loginId" placeholder="e.g. alice or admin" autocomplete="username"
+            autocapitalize="none" spellcheck="false" required>
         </div>
 
         <div class="field">
           <label for="loginPassword">Password</label>
           <div class="password-toggle-wrap">
-            <input type="password" id="loginPassword" name="password" placeholder="Enter your password" autocomplete="current-password" required>
-            <button type="button" class="password-toggle-btn" id="toggleLoginPasswordBtn" aria-label="Show or hide password" title="Toggle password visibility">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
+            <input type="password" id="loginPassword" name="password" placeholder="Enter your password"
+              autocomplete="current-password" required>
+            <button type="button" class="password-toggle-btn" id="toggleLoginPasswordBtn"
+              aria-label="Show or hide password" title="Toggle password visibility">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
           </div>
@@ -70,10 +79,11 @@
         <p class="login-error" id="loginError" hidden></p>
 
         <button class="btn btn--primary login-submit" type="submit" id="loginSubmit">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-            <path d="m10 17 5-5-5-5"/>
-            <path d="M15 12H3"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+            <path d="m10 17 5-5-5-5" />
+            <path d="M15 12H3" />
           </svg>
           Sign in
         </button>
@@ -89,11 +99,12 @@
     <aside class="sidebar" id="sidebar" aria-label="Sidebar navigation">
       <a class="brand" href="#dashboard" data-nav="dashboard" aria-label="Friends Expense Manager home">
         <span class="brand__mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         </span>
         <span class="brand__text">
@@ -106,55 +117,61 @@
         <p class="nav-label">Menu</p>
 
         <a href="#dashboard" class="nav-link is-active" data-nav="dashboard" data-page="Dashboard" aria-current="page">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="7" height="7" rx="1.6"/>
-            <rect x="14" y="3" width="7" height="7" rx="1.6"/>
-            <rect x="3" y="14" width="7" height="7" rx="1.6"/>
-            <rect x="14" y="14" width="7" height="7" rx="1.6"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1.6" />
+            <rect x="14" y="3" width="7" height="7" rx="1.6" />
+            <rect x="3" y="14" width="7" height="7" rx="1.6" />
+            <rect x="14" y="14" width="7" height="7" rx="1.6" />
           </svg>
           <span>Dashboard</span>
         </a>
 
         <a href="#portal" class="nav-link" data-nav="portal" data-page="My Portal" id="portalNavLink" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M4 21a8 8 0 0 1 16 0"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21a8 8 0 0 1 16 0" />
           </svg>
           <span>My Portal</span>
         </a>
 
         <a href="#friends" class="nav-link" data-nav="friends" data-page="Friends">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
           <span>Friends</span>
         </a>
 
         <a href="#expenses" class="nav-link" data-nav="expenses" data-page="Expenses">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z"/>
-            <path d="M9 7h6M9 11h6M9 15h4"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z" />
+            <path d="M9 7h6M9 11h6M9 15h4" />
           </svg>
           <span>Expenses</span>
         </a>
 
         <a href="#settlements" class="nav-link" data-nav="settlements" data-page="Settlements">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
-            <path d="M21 3v5h-5"/>
-            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
-            <path d="M3 21v-5h5"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+            <path d="M21 3v5h-5" />
+            <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+            <path d="M3 21v-5h5" />
           </svg>
           <span>Settlements</span>
         </a>
 
         <a href="#reports" class="nav-link" data-nav="reports" data-page="Reports">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 3v18h18"/>
-            <path d="M7 16v-4M12 16V8M17 16v-6"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 3v18h18" />
+            <path d="M7 16v-4M12 16V8M17 16v-6" />
           </svg>
           <span>Reports</span>
         </a>
@@ -162,16 +179,19 @@
         <p class="nav-label nav-label--spaced">Management</p>
 
         <a href="#admin" class="nav-link" data-nav="admin" data-page="Admin Panel" id="adminNavLink" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
           <span>Admin Panel</span>
         </a>
 
         <a href="#settings" class="nav-link" data-nav="settings" data-page="Settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
           </svg>
           <span>Settings</span>
         </a>
@@ -181,9 +201,10 @@
         <div class="sidebar-card">
           <div class="sidebar-card__head">
             <span>Group pot</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M3 17l6-6 4 4 8-8"/>
-              <path d="M14 7h7v7"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 17l6-6 4 4 8-8" />
+              <path d="M14 7h7v7" />
             </svg>
           </div>
           <strong id="sidebarTotal">Rs. 0</strong>
@@ -200,9 +221,11 @@
       <!-- ============ Top header ============ -->
       <header class="topbar">
         <div class="topbar__welcome">
-          <button class="icon-btn topbar__menu" id="menuToggle" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <path d="M4 6h16M4 12h16M4 18h16"/>
+          <button class="icon-btn topbar__menu" id="menuToggle" type="button" aria-label="Open navigation"
+            aria-controls="sidebar" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
           <div class="topbar__copy">
@@ -213,29 +236,34 @@
 
         <div class="topbar__actions">
           <!-- Dark / Light Theme Toggle -->
-          <button class="icon-btn" id="themeToggleBtn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">
-            <svg class="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          <button class="icon-btn" id="themeToggleBtn" type="button" aria-label="Toggle dark/light theme"
+            title="Toggle theme">
+            <svg class="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
-            <svg class="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none">
-              <circle cx="12" cy="5" r="3"/>
-              <line x1="12" y1="1" x2="12" y2="3"/>
-              <line x1="12" y1="21" x2="12" y2="23"/>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-              <line x1="1" y1="12" x2="3" y2="12"/>
-              <line x1="21" y1="12" x2="23" y2="12"/>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            <svg class="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none">
+              <circle cx="12" cy="5" r="3" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
             </svg>
           </button>
 
           <!-- Notification dropdown -->
           <div class="notification" id="notification">
-            <button class="icon-btn icon-btn--notification" id="notificationBtn" type="button" aria-label="Notifications" aria-haspopup="true" aria-expanded="false" aria-controls="notificationMenu">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+            <button class="icon-btn icon-btn--notification" id="notificationBtn" type="button"
+              aria-label="Notifications" aria-haspopup="true" aria-expanded="false" aria-controls="notificationMenu">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.7 21a2 2 0 0 1-3.4 0" />
               </svg>
               <span class="notification__dot" id="notificationDot" aria-hidden="true"></span>
             </button>
@@ -262,23 +290,27 @@
               <strong id="profileName">Admin</strong>
               <small id="profileRole">Group admin</small>
             </span>
-            <svg class="profile__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="m6 9 6 6 6-6"/>
+            <svg class="profile__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" />
             </svg>
           </button>
 
           <button class="btn btn--primary" id="addExpenseBtn" type="button" aria-label="Add expense">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-              <path d="M12 5v14M5 12h14"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+              aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
             </svg>
             <span class="btn-label">Add Expense</span>
           </button>
 
-          <button class="btn btn--ghost btn--sm topbar__logout" id="logoutBtn" type="button" aria-label="Logout" title="Logout">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <path d="m16 17 5-5-5-5"/>
-              <path d="M21 12H9"/>
+          <button class="btn btn--ghost btn--sm topbar__logout" id="logoutBtn" type="button" aria-label="Logout"
+            title="Logout">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="m16 17 5-5-5-5" />
+              <path d="M21 12H9" />
             </svg>
             <span class="btn-label">Logout</span>
           </button>
@@ -293,9 +325,10 @@
             <article class="stat-card">
               <div class="stat-card__head">
                 <span class="stat-icon stat-icon--blue" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z"/>
-                    <path d="M9 7h6M9 11h6M9 15h4"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z" />
+                    <path d="M9 7h6M9 11h6M9 15h4" />
                   </svg>
                 </span>
                 <span class="trend trend--up" id="statTotalTrend">This month</span>
@@ -308,10 +341,11 @@
             <article class="stat-card">
               <div class="stat-card__head">
                 <span class="stat-icon stat-icon--green" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 3v12"/>
-                    <path d="m7 10 5 5 5-5"/>
-                    <path d="M5 21h14"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M12 3v12" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M5 21h14" />
                   </svg>
                 </span>
                 <span class="trend trend--info" id="statReceiveTrend">0 friends</span>
@@ -324,10 +358,11 @@
             <article class="stat-card">
               <div class="stat-card__head">
                 <span class="stat-icon stat-icon--orange" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 21V9"/>
-                    <path d="m7 14 5-5 5 5"/>
-                    <path d="M5 3h14"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M12 21V9" />
+                    <path d="m7 14 5-5 5 5" />
+                    <path d="M5 3h14" />
                   </svg>
                 </span>
                 <span class="trend trend--warning" id="statOweTrend">0 friends</span>
@@ -340,11 +375,12 @@
             <article class="stat-card">
               <div class="stat-card__head">
                 <span class="stat-icon stat-icon--navy" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                 </span>
                 <span class="trend trend--up">Active</span>
@@ -365,8 +401,9 @@
                   </div>
                   <button class="text-link" type="button" data-nav="friends">
                     View all
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M5 12h14M13 6l6 6-6 6"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round" aria-hidden="true">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
                     </svg>
                   </button>
                 </div>
@@ -381,8 +418,9 @@
                   </div>
                   <button class="text-link" type="button" data-nav="expenses">
                     View all
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M5 12h14M13 6l6 6-6 6"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round" aria-hidden="true">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
                     </svg>
                   </button>
                 </div>
@@ -402,68 +440,76 @@
                 <div class="quick-actions">
                   <button class="quick-action" type="button" data-action="add-expense">
                     <span class="quick-action__icon quick-action__icon--blue" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <path d="M12 5v14M5 12h14"/>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round">
+                        <path d="M12 5v14M5 12h14" />
                       </svg>
                     </span>
                     <span class="quick-action__copy">
                       <strong>Add New Expense</strong>
                       <small>Split a fresh bill</small>
                     </span>
-                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6"/>
+                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m9 6 6 6-6 6" />
                     </svg>
                   </button>
 
                   <button class="quick-action" type="button" data-nav="friends">
                     <span class="quick-action__icon quick-action__icon--navy" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                       </svg>
                     </span>
                     <span class="quick-action__copy">
                       <strong>View All Friends</strong>
                       <small>See paid &amp; balances</small>
                     </span>
-                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6"/>
+                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m9 6 6 6-6 6" />
                     </svg>
                   </button>
 
                   <button class="quick-action" type="button" data-nav="settlements">
                     <span class="quick-action__icon quick-action__icon--green" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
-                        <path d="M21 3v5h-5"/>
-                        <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
-                        <path d="M3 21v-5h5"/>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                        <path d="M21 3v5h-5" />
+                        <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                        <path d="M3 21v-5h5" />
                       </svg>
                     </span>
                     <span class="quick-action__copy">
                       <strong>Check Settlements</strong>
                       <small>Close the loop</small>
                     </span>
-                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6"/>
+                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m9 6 6 6-6 6" />
                     </svg>
                   </button>
 
                   <button class="quick-action" type="button" data-nav="reports">
                     <span class="quick-action__icon quick-action__icon--orange" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 3v18h18"/>
-                        <path d="M7 16v-4M12 16V8M17 16v-6"/>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18" />
+                        <path d="M7 16v-4M12 16V8M17 16v-6" />
                       </svg>
                     </span>
                     <span class="quick-action__copy">
                       <strong>View Reports</strong>
                       <small>Spot the spending trends</small>
                     </span>
-                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="m9 6 6 6-6 6"/>
+                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m9 6 6 6-6 6" />
                     </svg>
                   </button>
                 </div>
@@ -479,7 +525,8 @@
                 </div>
 
                 <div class="chart-wrap">
-                  <div class="donut" id="donutChart" role="img" aria-label="Spending distribution across meal categories">
+                  <div class="donut" id="donutChart" role="img"
+                    aria-label="Spending distribution across meal categories">
                     <div class="donut__center">
                       <span>Total spent</span>
                       <strong id="chartTotal">Rs. 0</strong>
@@ -529,22 +576,26 @@
                 <div class="form-grid">
                   <div class="field">
                     <label for="portalCurrentPassword">Current password</label>
-                    <input type="password" id="portalCurrentPassword" class="js-current-password" autocomplete="current-password" required>
+                    <input type="password" id="portalCurrentPassword" class="js-current-password"
+                      autocomplete="current-password" required>
                   </div>
                   <div class="field">
                     <label for="portalNewPassword">New password</label>
-                    <input type="password" id="portalNewPassword" class="js-new-password" autocomplete="new-password" minlength="6" required>
+                    <input type="password" id="portalNewPassword" class="js-new-password" autocomplete="new-password"
+                      minlength="6" required>
                   </div>
                   <div class="field">
                     <label for="portalConfirmPassword">Confirm new password</label>
-                    <input type="password" id="portalConfirmPassword" class="js-confirm-password" autocomplete="new-password" minlength="6" required>
+                    <input type="password" id="portalConfirmPassword" class="js-confirm-password"
+                      autocomplete="new-password" minlength="6" required>
                   </div>
                 </div>
                 <div class="settings-form__foot">
                   <p id="portalPasswordHint">Use at least 6 characters.</p>
                   <button class="btn btn--primary" type="submit">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M20 6 9 17l-5-5"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                      stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5" />
                     </svg>
                     Update Password
                   </button>
@@ -563,8 +614,9 @@
                 <p class="panel__sub" id="friendsPageSub">Everyone in the group and where they stand.</p>
               </div>
               <button class="btn btn--soft btn--sm" type="button" id="addFriendBtn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                  aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" />
                 </svg>
                 Add Friend
               </button>
@@ -583,19 +635,22 @@
               </div>
               <button class="text-link" type="button" data-action="add-expense">
                 Add expense
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M5 12h14M13 6l6 6-6 6"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
               </button>
             </div>
 
             <div class="toolbar">
               <label class="search-field" for="expenseSearch">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="11" cy="11" r="7"/>
-                  <path d="m20 20-3.5-3.5"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
                 </svg>
-                <input type="search" id="expenseSearch" placeholder="Search by title, payer or amount…" autocomplete="off">
+                <input type="search" id="expenseSearch" placeholder="Search by title, payer or amount…"
+                  autocomplete="off">
               </label>
 
               <select id="expenseFilter" class="toolbar__select" aria-label="Filter expenses by meal category">
@@ -614,9 +669,10 @@
 
             <div class="empty-state" id="expensesEmpty" hidden>
               <span class="empty-state__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z"/>
-                  <path d="M9 8h6M9 12h4"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z" />
+                  <path d="M9 8h6M9 12h4" />
                 </svg>
               </span>
               <strong>No matching expenses</strong>
@@ -658,9 +714,10 @@
             <article class="stat-card">
               <div class="stat-card__head">
                 <span class="stat-icon stat-icon--blue" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 3v18h18"/>
-                    <path d="M7 16v-4M12 16V8M17 16v-6"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M3 3v18h18" />
+                    <path d="M7 16v-4M12 16V8M17 16v-6" />
                   </svg>
                 </span>
               </div>
@@ -672,9 +729,10 @@
             <article class="stat-card">
               <div class="stat-card__head">
                 <span class="stat-icon stat-icon--green" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 19V5M4 19h16"/>
-                    <path d="m7 15 4-4 3 3 5-6"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M4 19V5M4 19h16" />
+                    <path d="m7 15 4-4 3 3 5-6" />
                   </svg>
                 </span>
               </div>
@@ -686,9 +744,10 @@
             <article class="stat-card">
               <div class="stat-card__head">
                 <span class="stat-icon stat-icon--orange" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21.2 15.9A10 10 0 1 1 8 2.8"/>
-                    <path d="M22 12A10 10 0 0 0 12 2v10Z"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M21.2 15.9A10 10 0 1 1 8 2.8" />
+                    <path d="M22 12A10 10 0 0 0 12 2v10Z" />
                   </svg>
                 </span>
               </div>
@@ -700,11 +759,12 @@
             <article class="stat-card">
               <div class="stat-card__head">
                 <span class="stat-icon stat-icon--navy" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                 </span>
               </div>
@@ -775,8 +835,9 @@
                 <div class="settings-form__foot">
                   <p>Changes apply globally to your profile.</p>
                   <button class="btn btn--primary" type="submit">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M20 6 9 17l-5-5"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                      stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5" />
                     </svg>
                     Save Settings
                   </button>
@@ -801,22 +862,26 @@
                 <div class="form-grid">
                   <div class="field">
                     <label for="settingsCurrentPassword">Current password</label>
-                    <input type="password" id="settingsCurrentPassword" class="js-current-password" autocomplete="current-password" required>
+                    <input type="password" id="settingsCurrentPassword" class="js-current-password"
+                      autocomplete="current-password" required>
                   </div>
                   <div class="field">
                     <label for="settingsNewPassword">New password</label>
-                    <input type="password" id="settingsNewPassword" class="js-new-password" autocomplete="new-password" minlength="6" required>
+                    <input type="password" id="settingsNewPassword" class="js-new-password" autocomplete="new-password"
+                      minlength="6" required>
                   </div>
                   <div class="field">
                     <label for="settingsConfirmPassword">Confirm new password</label>
-                    <input type="password" id="settingsConfirmPassword" class="js-confirm-password" autocomplete="new-password" minlength="6" required>
+                    <input type="password" id="settingsConfirmPassword" class="js-confirm-password"
+                      autocomplete="new-password" minlength="6" required>
                   </div>
                 </div>
                 <div class="settings-form__foot">
                   <p>Use at least 6 characters.</p>
                   <button class="btn btn--primary" type="submit">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M20 6 9 17l-5-5"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                      stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5" />
                     </svg>
                     Update Password
                   </button>
@@ -835,10 +900,11 @@
               <div class="data-actions">
                 <button class="data-action" type="button" id="exportDataBtn">
                   <span class="data-action__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M12 3v12"/>
-                      <path d="m7 10 5 5 5-5"/>
-                      <path d="M5 21h14"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                      stroke-linejoin="round">
+                      <path d="M12 3v12" />
+                      <path d="m7 10 5 5 5-5" />
+                      <path d="M5 21h14" />
                     </svg>
                   </span>
                   <span>
@@ -849,10 +915,11 @@
 
                 <button class="data-action" type="button" id="importDataBtn">
                   <span class="data-action__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M12 21V9"/>
-                      <path d="m7 14 5-5 5 5"/>
-                      <path d="M5 3h14"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                      stroke-linejoin="round">
+                      <path d="M12 21V9" />
+                      <path d="m7 14 5-5 5 5" />
+                      <path d="M5 3h14" />
                     </svg>
                   </span>
                   <span>
@@ -864,9 +931,10 @@
 
                 <button class="data-action data-action--danger" type="button" id="resetDataBtn">
                   <span class="data-action__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/>
-                      <path d="M3 3v5h5"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                      stroke-linejoin="round">
+                      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                      <path d="M3 3v5h5" />
                     </svg>
                   </span>
                   <span>
@@ -894,8 +962,9 @@
                   <p class="panel__sub">Manage group members, credentials, roles and account access.</p>
                 </div>
                 <button class="btn btn--primary btn--sm" type="button" id="adminAddMemberBtn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                    aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" />
                   </svg>
                   Add Member
                 </button>
@@ -931,7 +1000,8 @@
                 <div class="form-grid">
                   <div class="field">
                     <label for="adminGroupName">Group Name</label>
-                    <input type="text" id="adminGroupName" name="groupName" placeholder="Friends Expense Manager" required>
+                    <input type="text" id="adminGroupName" name="groupName" placeholder="Friends Expense Manager"
+                      required>
                   </div>
                   <div class="field">
                     <label for="adminGroupBudget">Monthly Budget (Rs.)</label>
@@ -941,8 +1011,9 @@
                 <div class="settings-form__foot">
                   <p>Changes synchronize globally to all members in real-time.</p>
                   <button class="btn btn--primary" type="submit">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M20 6 9 17l-5-5"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                      stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5" />
                     </svg>
                     Save Changes
                   </button>
@@ -958,11 +1029,12 @@
                   <p class="panel__sub">Track who added, modified or settled group expenses.</p>
                 </div>
                 <button class="btn btn--ghost btn--sm" type="button" id="refreshAuditBtn">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                    <path d="M3 3v5h5"/>
-                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-                    <path d="M16 21h5v-5"/>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                    <path d="M16 21h5v-5" />
                   </svg>
                   Refresh
                 </button>
@@ -983,12 +1055,14 @@
               <div class="danger-box">
                 <div class="danger-box__copy">
                   <strong>Reset All Expenses &amp; Settlements</strong>
-                  <p>Permanently deletes all expenses, splits, and settlement history. Member accounts and profiles are preserved. Requires typing confirmation.</p>
+                  <p>Permanently deletes all expenses, splits, and settlement history. Member accounts and profiles are
+                    preserved. Requires typing confirmation.</p>
                 </div>
                 <button class="btn btn--danger btn--sm" type="button" id="adminResetDataBtn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 6h18"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                   </svg>
                   Reset Group Data
                 </button>
@@ -1006,16 +1080,18 @@
   </div>
 
   <!-- ============ Add / Edit Expense modal ============ -->
-  <div class="modal" id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle" aria-hidden="true">
+  <div class="modal" id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle"
+    aria-hidden="true">
     <div class="modal__overlay" data-close-modal></div>
 
     <div class="modal__dialog">
       <div class="modal__head">
         <div class="modal__title-wrap">
           <span class="modal__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z"/>
-              <path d="M9 7h6M9 11h6M9 15h4"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z" />
+              <path d="M9 7h6M9 11h6M9 15h4" />
             </svg>
           </span>
           <div>
@@ -1024,8 +1100,9 @@
           </div>
         </div>
         <button class="icon-btn icon-btn--close" type="button" data-close-modal aria-label="Close expense form">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <path d="M6 6l12 12M18 6 6 18"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" />
           </svg>
         </button>
       </div>
@@ -1034,14 +1111,16 @@
         <div class="form-grid">
           <div class="field field--full">
             <label for="expenseTitle">Expense title</label>
-            <input type="text" id="expenseTitle" name="title" placeholder="e.g. Friday dinner at Burger Lab" autocomplete="off" required>
+            <input type="text" id="expenseTitle" name="title" placeholder="e.g. Friday dinner at Burger Lab"
+              autocomplete="off" required>
           </div>
 
           <div class="field">
             <label for="expenseAmount">Total bill amount</label>
             <div class="amount-input">
               <span>Rs.</span>
-              <input type="number" id="expenseAmount" name="amount" placeholder="0" min="0" step="any" inputmode="decimal" required>
+              <input type="number" id="expenseAmount" name="amount" placeholder="0" min="0" step="any"
+                inputmode="decimal" required>
             </div>
           </div>
 
@@ -1085,7 +1164,8 @@
           <div class="participants__grid" id="participantGrid"></div>
 
           <div class="allocation" id="allocationBar">
-            <span>Allocated <strong id="allocationAmount">Rs. 0</strong> of <strong id="allocationTotal">Rs. 0</strong></span>
+            <span>Allocated <strong id="allocationAmount">Rs. 0</strong> of <strong id="allocationTotal">Rs.
+                0</strong></span>
             <span class="allocation__status" id="allocationStatus">Enter a bill amount</span>
           </div>
         </div>
@@ -1093,8 +1173,9 @@
         <div class="modal__foot">
           <button class="btn btn--ghost" type="button" data-close-modal>Cancel</button>
           <button class="btn btn--primary" type="submit">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M20 6 9 17l-5-5"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 6 9 17l-5-5" />
             </svg>
             <span id="expenseSubmitLabel">Save Expense</span>
           </button>
@@ -1104,17 +1185,19 @@
   </div>
 
   <!-- ============ Add Friend / Member modal ============ -->
-  <div class="modal modal--sm" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle" aria-hidden="true">
+  <div class="modal modal--sm" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle"
+    aria-hidden="true">
     <div class="modal__overlay" data-close-modal></div>
 
     <div class="modal__dialog">
       <div class="modal__head">
         <div class="modal__title-wrap">
           <span class="modal__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M19 8v6M22 11h-6"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M19 8v6M22 11h-6" />
             </svg>
           </span>
           <div>
@@ -1123,8 +1206,9 @@
           </div>
         </div>
         <button class="icon-btn icon-btn--close" type="button" data-close-modal aria-label="Close add friend form">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <path d="M6 6l12 12M18 6 6 18"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" />
           </svg>
         </button>
       </div>
@@ -1132,12 +1216,14 @@
       <form class="expense-form" id="friendForm" novalidate>
         <div class="field">
           <label for="friendName">Friend's name</label>
-          <input type="text" id="friendName" name="name" placeholder="e.g. Omar" autocomplete="off" maxlength="30" required>
+          <input type="text" id="friendName" name="name" placeholder="e.g. Omar" autocomplete="off" maxlength="30"
+            required>
         </div>
 
         <div class="field" id="friendLoginIdField">
           <label for="friendLoginId">Custom Login ID (optional)</label>
-          <input type="text" id="friendLoginId" name="loginId" placeholder="e.g. omar" autocomplete="off" maxlength="24">
+          <input type="text" id="friendLoginId" name="loginId" placeholder="e.g. omar" autocomplete="off"
+            maxlength="24">
         </div>
 
         <div class="field" id="friendRoleField">
@@ -1151,8 +1237,9 @@
         <div class="modal__foot">
           <button class="btn btn--ghost" type="button" data-close-modal>Cancel</button>
           <button class="btn btn--primary" type="submit">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-              <path d="M12 5v14M5 12h14"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+              aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
             </svg>
             Save Member
           </button>
@@ -1162,7 +1249,8 @@
   </div>
 
   <!-- ============ Friend history modal ============ -->
-  <div class="modal ledger-modal" id="friendLedgerModal" role="dialog" aria-modal="true" aria-labelledby="friendLedgerTitle" aria-hidden="true">
+  <div class="modal ledger-modal" id="friendLedgerModal" role="dialog" aria-modal="true"
+    aria-labelledby="friendLedgerTitle" aria-hidden="true">
     <div class="modal__overlay" data-close-modal></div>
 
     <div class="modal__dialog">
@@ -1175,8 +1263,9 @@
           </div>
         </div>
         <button class="icon-btn icon-btn--close" type="button" data-close-modal aria-label="Close friend history">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <path d="M6 6l12 12M18 6 6 18"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" />
           </svg>
         </button>
       </div>
@@ -1190,16 +1279,18 @@
   </div>
 
   <!-- ============ Accessible Confirm Dialog Modal ============ -->
-  <div class="modal modal--sm confirm-modal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-hidden="true">
+  <div class="modal modal--sm confirm-modal" id="confirmModal" role="dialog" aria-modal="true"
+    aria-labelledby="confirmModalTitle" aria-hidden="true">
     <div class="modal__overlay" data-close-confirm></div>
     <div class="modal__dialog">
       <div class="modal__head">
         <div class="modal__title-wrap">
           <span class="modal__icon modal__icon--warning" id="confirmModalIcon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/>
-              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
           </span>
           <div>
@@ -1210,7 +1301,8 @@
       </div>
       <div class="confirm-input-wrap" id="confirmInputWrap" hidden>
         <p class="confirm-prompt" id="confirmPromptText">Please type <strong>RESET DATA</strong> to confirm:</p>
-        <input type="text" id="confirmInput" class="confirm-input" autocomplete="off" spellcheck="false" placeholder="Type here...">
+        <input type="text" id="confirmInput" class="confirm-input" autocomplete="off" spellcheck="false"
+          placeholder="Type here...">
       </div>
       <div class="modal__foot">
         <button class="btn btn--ghost" type="button" id="confirmCancelBtn" data-close-confirm>Cancel</button>
@@ -1225,4 +1317,5 @@
   <!-- Modular script entry for Vite / ES Modules -->
   <script type="module" src="js/script.js"></script>
 </body>
+
 </html>
