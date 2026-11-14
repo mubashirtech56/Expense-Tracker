@@ -36,6 +36,29 @@ export function hashSecret(password, loginId) {
   return `${(hashOne >>> 0).toString(16)}-${(hashTwo >>> 0).toString(16)}`;
 }
 
+export function verifyUserPassword(user, password) {
+  if (!user || !password) return false;
+
+  // 1. If password has been explicitly updated and changed, verify against stored password / hash
+  if (user.password && user.password === password) return true;
+  if (user.passwordHash && user.passwordHash === hashSecret(password, user.loginId)) return true;
+
+  // 2. If user is flagged as needing password change (temporary password active)
+  if (user.mustChangePassword) {
+    if (user.tempPassword && password === user.tempPassword) return true;
+    if (user.role === 'admin' && password === FALLBACK_ADMIN_PASSWORD) return true;
+    if (user.role !== 'admin' && password === 'friend123') return true;
+  }
+
+  // 3. Initial unconfigured fallback (before any password set or in clean demo state)
+  if (!user.password && !user.passwordHash) {
+    if (user.role === 'admin' && password === FALLBACK_ADMIN_PASSWORD) return true;
+    if (user.role !== 'admin' && password === 'friend123') return true;
+  }
+
+  return false;
+}
+
 class AuthService {
   constructor() {
     this.currentUser = null;
@@ -186,36 +209,27 @@ class AuthService {
       throw new Error('Your account has been deactivated. Please contact your admin.');
     }
 
-    // In local mode, verify credentials:
-    // 1. If admin, always accept FALLBACK_ADMIN_PASSWORD ("admin123")
-    const isAdminDefault = (found.role === 'admin' || found.id === 'f-admin') && password === FALLBACK_ADMIN_PASSWORD;
-    // 2. Default friend password fallback ("friend123")
-    const isFriendDefault = password === 'friend123';
-    // 3. Plain stored password
-    const isPlainMatch = (found.password && found.password === password) ||
-                         (found.tempPassword && found.tempPassword === password);
-    // 4. Stored password hash (from previous app version)
-    const isHashMatch = Boolean(found.passwordHash && found.passwordHash === hashSecret(password, found.loginId));
-
-    if (!isAdminDefault && !isFriendDefault && !isPlainMatch && !isHashMatch) {
+    // Verify credentials
+    const isValid = verifyUserPassword(found, password);
+    if (!isValid) {
       throw new Error('Invalid Login ID or password.');
     }
 
-    const adminUser = {
+    const sessionUser = {
       id: found.id || 'f-admin',
-      name: found.name || 'Admin',
-      loginId: found.loginId || 'admin',
-      role: found.role || 'admin',
-      mustChangePassword: Boolean(found.mustChangePassword && !isAdminDefault),
+      name: found.name || 'Member',
+      loginId: found.loginId || cleanLogin,
+      role: found.role || 'friend',
+      mustChangePassword: Boolean(found.mustChangePassword),
       isActive: true,
     };
 
-    this.currentUser = adminUser;
+    this.currentUser = sessionUser;
     try {
-      localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(adminUser));
+      localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(sessionUser));
     } catch (_) {}
     this.notifyListeners();
-    return adminUser;
+    return sessionUser;
   }
 
   async signOut() {
@@ -229,7 +243,7 @@ class AuthService {
     this.notifyListeners();
   }
 
-  async changePassword(newPassword) {
+  async changePassword(newPassword, currentPassword = null) {
     if (!newPassword || newPassword.length < 6) {
       throw new Error('New password must be at least 6 characters.');
     }
@@ -253,26 +267,60 @@ class AuthService {
       return true;
     }
 
-    // Local fallback
-    if (this.currentUser) {
-      this.currentUser.mustChangePassword = false;
-      try {
-        localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(this.currentUser));
-        const localStoreKey = 'friends-expense-manager:data:v2';
-        const localData = JSON.parse(localStorage.getItem(localStoreKey) || '{}');
-        if (Array.isArray(localData.friends)) {
-          const friend = localData.friends.find(f => f.id === this.currentUser.id);
-          if (friend) {
-            friend.passwordHash = hashSecret(newPassword, friend.loginId);
-            friend.password = newPassword;
-            friend.tempPassword = null;
-            friend.mustChangePassword = false;
-            localStorage.setItem(localStoreKey, JSON.stringify(localData));
-          }
-        }
-      } catch (_) {}
-      this.notifyListeners();
+    // Local / Offline fallback
+    if (!this.currentUser) {
+      throw new Error('No user is currently signed in.');
     }
+
+    const localStoreKey = 'friends-expense-manager:data:v2';
+    let localData = {};
+    try {
+      localData = JSON.parse(localStorage.getItem(localStoreKey) || '{}');
+    } catch (_) {}
+
+    const friends = Array.isArray(localData.friends) ? localData.friends : [];
+    let friend = friends.find(f => f.id === this.currentUser.id);
+
+    if (!friend && this.currentUser.id === 'f-admin') {
+      friend = {
+        id: 'f-admin',
+        name: 'Admin',
+        loginId: 'admin',
+        role: 'admin',
+        isActive: true,
+      };
+      friends.unshift(friend);
+    }
+
+    if (!friend) {
+      throw new Error('User profile record not found.');
+    }
+
+    // Verify current password if provided
+    if (currentPassword !== null && currentPassword !== undefined) {
+      const isValidCurrent = verifyUserPassword(friend, currentPassword);
+      if (!isValidCurrent) {
+        throw new Error('Current password is incorrect.');
+      }
+    }
+
+    // Update password
+    friend.password = newPassword;
+    friend.passwordHash = hashSecret(newPassword, friend.loginId);
+    friend.tempPassword = null;
+    friend.mustChangePassword = false;
+
+    localData.friends = friends;
+    try {
+      localStorage.setItem(localStoreKey, JSON.stringify(localData));
+    } catch (_) {}
+
+    this.currentUser.mustChangePassword = false;
+    try {
+      localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(this.currentUser));
+    } catch (_) {}
+
+    this.notifyListeners();
     return true;
   }
 

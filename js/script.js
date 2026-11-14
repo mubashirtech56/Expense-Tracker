@@ -2205,29 +2205,43 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function handlePasswordChange(event) {
     event.preventDefault();
     const form = event.currentTarget;
+    const currentPasswordInput = form.querySelector(".js-current-password");
     const newPasswordInput = form.querySelector(".js-new-password");
     const confirmPasswordInput = form.querySelector(".js-confirm-password");
 
+    const currentPassword = currentPasswordInput?.value || "";
     const newPassword = newPasswordInput?.value || "";
     const confirmPassword = confirmPasswordInput?.value || "";
 
+    if (!currentPassword) {
+      showToast("Please enter your current password.");
+      currentPasswordInput?.focus();
+      return;
+    }
+
     if (newPassword.length < 6) {
       showToast("New password must be at least 6 characters.");
+      newPasswordInput?.focus();
       return;
     }
 
     if (newPassword !== confirmPassword) {
       showToast("New passwords do not match.");
+      confirmPasswordInput?.focus();
       return;
     }
 
     try {
-      await auth.changePassword(newPassword);
+      await auth.changePassword(newPassword, currentPassword);
       form.reset();
-      showToast("Password updated successfully.");
+      showToast("Password updated successfully! Please use your new password on next login.");
       await loadAndRenderData();
     } catch (err) {
       showToast(err.message || "Failed to update password.");
+      if (err.message && err.message.toLowerCase().includes("current")) {
+        currentPasswordInput?.focus();
+        currentPasswordInput?.select();
+      }
     }
   }
 

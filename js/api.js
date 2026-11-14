@@ -377,10 +377,13 @@ export const api = {
     const state = this.loadLocalCache();
     const friend = state.friends.find((f) => f.id === friendId);
     if (friend) {
+      const temp = customPassword || 'friend123';
       friend.mustChangePassword = true;
-      friend.tempPassword = customPassword || 'friend123';
+      friend.tempPassword = temp;
+      friend.password = null;
+      friend.passwordHash = null;
       this.saveLocalCache(state);
-      return friend.tempPassword;
+      return temp;
     }
     return 'friend123';
   },
