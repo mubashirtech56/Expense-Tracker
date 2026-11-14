@@ -4,6 +4,7 @@ export default defineConfig({
   // Use relative base by default so assets resolve correctly on GitHub Pages
   base: process.env.VITE_BASE_PATH || './',
   build: {
+    target: 'esnext',
     outDir: 'dist',
     sourcemap: true,
   },
