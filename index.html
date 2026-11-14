@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -63,7 +64,7 @@
         <div class="field">
           <label for="loginPassword">Password</label>
           <div class="password-toggle-wrap">
-            <input type="password" id="loginPassword" name="password" placeholder="Enter your password"
+            <input type="password" id="loginPassword" name="password" placeholder="Enter password (default: 123456)"
               autocomplete="current-password" required>
             <button type="button" class="password-toggle-btn" id="toggleLoginPasswordBtn"
               aria-label="Show or hide password" title="Toggle password visibility">
@@ -89,7 +90,7 @@
         </button>
       </form>
 
-      <p class="login-help" id="loginHelp"></p>
+      <p class="login-help" id="loginHelp">Default password for all accounts: <strong>123456</strong> (Admin: <strong>admin</strong>)</p>
       <p class="login-help login-help--sub">Forgot your password? Ask your group admin for a quick reset.</p>
     </div>
   </div>
@@ -577,7 +578,7 @@
                   <div class="field">
                     <label for="portalCurrentPassword">Current password</label>
                     <input type="password" id="portalCurrentPassword" class="js-current-password"
-                      autocomplete="current-password" required>
+                      placeholder="Default: 123456" autocomplete="current-password">
                   </div>
                   <div class="field">
                     <label for="portalNewPassword">New password</label>
@@ -863,7 +864,7 @@
                   <div class="field">
                     <label for="settingsCurrentPassword">Current password</label>
                     <input type="password" id="settingsCurrentPassword" class="js-current-password"
-                      autocomplete="current-password" required>
+                      placeholder="Default: 123456" autocomplete="current-password">
                   </div>
                   <div class="field">
                     <label for="settingsNewPassword">New password</label>

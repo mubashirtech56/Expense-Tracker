@@ -355,7 +355,7 @@ export const api = {
       role,
       mustChangePassword: true,
       isActive: true,
-      tempPassword: initialPassword || 'friend123',
+      tempPassword: initialPassword || '123456',
     };
     state.friends.push(newFriend);
     this.saveLocalCache(state);
@@ -377,7 +377,7 @@ export const api = {
     const state = this.loadLocalCache();
     const friend = state.friends.find((f) => f.id === friendId);
     if (friend) {
-      const temp = customPassword || 'friend123';
+      const temp = customPassword || '123456';
       friend.mustChangePassword = true;
       friend.tempPassword = temp;
       friend.password = null;
@@ -385,7 +385,7 @@ export const api = {
       this.saveLocalCache(state);
       return temp;
     }
-    return 'friend123';
+    return '123456';
   },
 
   async toggleFriendActive(friendId, isActive) {

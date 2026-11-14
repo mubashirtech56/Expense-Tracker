@@ -2051,18 +2051,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const confirmed = await showConfirmDialog({
       title: "Reset Password",
-      message: `Reset password for ${friend.name}? A temporary password will be assigned.`,
-      confirmText: "Reset",
+      message: `Reset password for ${friend.name} back to default (123456)?`,
+      confirmText: "Reset to 123456",
       isDanger: false
     });
 
     if (!confirmed) return;
 
     try {
-      const tempPass = await api.resetFriendPassword(friendId);
+      const tempPass = await api.resetFriendPassword(friendId, "123456");
       await showConfirmDialog({
         title: "Password Reset Successful",
-        message: `Temporary password for ${friend.name} is: ${tempPass}\n\nPlease share this with them. They will be required to change it on their next login.`,
+        message: `Password for ${friend.name} has been reset to: ${tempPass}\n\nPlease share this with them. They will be required to change it on their next login.`,
         confirmText: "Copy & Done",
         cancelText: "Close",
         isDanger: false
@@ -2209,12 +2209,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     const newPasswordInput = form.querySelector(".js-new-password");
     const confirmPasswordInput = form.querySelector(".js-confirm-password");
 
-    const currentPassword = currentPasswordInput?.value || "";
+    let currentPassword = currentPasswordInput?.value?.trim() || "";
     const newPassword = newPasswordInput?.value || "";
     const confirmPassword = confirmPasswordInput?.value || "";
 
+    const currentUser = auth.getCurrentUser();
+    if (!currentPassword && currentUser?.mustChangePassword) {
+      currentPassword = "123456";
+    }
+
     if (!currentPassword) {
-      showToast("Please enter your current password.");
+      showToast("Please enter your current password (default: 123456).");
       currentPasswordInput?.focus();
       return;
     }
@@ -2330,6 +2335,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       loginScreen.hidden = false;
       if (loginIdInput) loginIdInput.value = "";
       if (loginPasswordInput) loginPasswordInput.value = "";
+      if (loginHelp) {
+        loginHelp.innerHTML = "Default password for all accounts: <strong>123456</strong> (Admin: <strong>admin</strong>)";
+      }
     }
   });
 

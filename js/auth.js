@@ -5,7 +5,9 @@ import { supabase, isSupabaseConfigured } from './supabase.js';
 
 const LOCAL_SESSION_KEY = 'fem_local_session_user';
 const FALLBACK_ADMIN_LOGIN = 'admin';
-const FALLBACK_ADMIN_PASSWORD = 'admin123';
+export const DEFAULT_PASSWORD = '123456';
+const LEGACY_ADMIN_PASSWORD = 'admin123';
+const LEGACY_FRIEND_PASSWORD = 'friend123';
 
 export function slugifyLoginId(value) {
   return String(value || 'friend')
@@ -39,22 +41,25 @@ export function hashSecret(password, loginId) {
 export function verifyUserPassword(user, password) {
   if (!user || !password) return false;
 
-  // 1. If password has been explicitly updated and changed, verify against stored password / hash
+  // 1. If password has been explicitly updated and set, verify against stored password / hash
   if (user.password && user.password === password) return true;
   if (user.passwordHash && user.passwordHash === hashSecret(password, user.loginId)) return true;
 
   // 2. If user is flagged as needing password change (temporary password active)
   if (user.mustChangePassword) {
+    if (password === DEFAULT_PASSWORD) return true;
     if (user.tempPassword && password === user.tempPassword) return true;
-    if (user.role === 'admin' && password === FALLBACK_ADMIN_PASSWORD) return true;
-    if (user.role !== 'admin' && password === 'friend123') return true;
+    if (password === LEGACY_ADMIN_PASSWORD || password === LEGACY_FRIEND_PASSWORD) return true;
   }
 
   // 3. Initial unconfigured fallback (before any password set or in clean demo state)
   if (!user.password && !user.passwordHash) {
-    if (user.role === 'admin' && password === FALLBACK_ADMIN_PASSWORD) return true;
-    if (user.role !== 'admin' && password === 'friend123') return true;
+    if (password === DEFAULT_PASSWORD) return true;
+    if (password === LEGACY_ADMIN_PASSWORD || password === LEGACY_FRIEND_PASSWORD) return true;
   }
+
+  // 4. Also allow DEFAULT_PASSWORD ("123456") if user's tempPassword was 123456
+  if (user.tempPassword && user.tempPassword === password) return true;
 
   return false;
 }
@@ -212,7 +217,7 @@ class AuthService {
     // Verify credentials
     const isValid = verifyUserPassword(found, password);
     if (!isValid) {
-      throw new Error('Invalid Login ID or password.');
+      throw new Error('Invalid Login ID or password. Default is 123456.');
     }
 
     const sessionUser = {
@@ -297,10 +302,10 @@ class AuthService {
     }
 
     // Verify current password if provided
-    if (currentPassword !== null && currentPassword !== undefined) {
+    if (currentPassword !== null && currentPassword !== undefined && currentPassword !== '') {
       const isValidCurrent = verifyUserPassword(friend, currentPassword);
       if (!isValidCurrent) {
-        throw new Error('Current password is incorrect.');
+        throw new Error('Current password is incorrect. Default is 123456.');
       }
     }
 
