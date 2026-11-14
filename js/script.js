@@ -132,7 +132,7 @@ const NOTIFICATIONS_READ_KEY = "fem_notifications_read_at";
 /* ------------------------------------------------------------------------
    DOM Elements
    ---------------------------------------------------------------------- */
-document.addEventListener("DOMContentLoaded", async () => {
+const initializeApp = async () => {
   const appShell = document.getElementById("appShell");
   const unconfiguredScreen = document.getElementById("unconfiguredScreen");
   const loginScreen = document.getElementById("loginScreen");
@@ -3246,4 +3246,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (isProd && "serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
-});
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeApp, { once: true });
+} else {
+  void initializeApp();
+}
