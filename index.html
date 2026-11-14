@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Friends Expense Manager — a shared dashboard for tracking meals, contributions, balances and settlements backed by Supabase.">
+  <meta name="theme-color" content="#0b1426">
+  <title>Friends Expense Manager — Dashboard</title>
+
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">Skip to content</a>
+
+  <!-- ============ Login ============ -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="login-brand">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </span>
+        <span class="brand__text">
+          <strong>Friends</strong>
+          <span>Expense Manager</span>
+        </span>
+      </div>
+
+      <div class="login-copy">
+        <span class="login-eyebrow">Private group portal</span>
+        <h1>Welcome back</h1>
+        <p>Sign in with your Login ID and password to access the group dashboard.</p>
+      </div>
+
+      <form class="login-form" id="loginForm" novalidate>
+        <div class="field">
+          <label for="loginId">Login ID</label>
+          <input type="text" id="loginId" name="loginId" placeholder="e.g. alice or admin" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+        </div>
+
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <div class="password-toggle-wrap">
+            <input type="password" id="loginPassword" name="password" placeholder="Enter your password" autocomplete="current-password" required>
+            <button type="button" class="password-toggle-btn" id="toggleLoginPasswordBtn" aria-label="Show or hide password" title="Toggle password visibility">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <p class="login-error" id="loginError" hidden></p>
+
+        <button class="btn btn--primary login-submit" type="submit" id="loginSubmit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <path d="m10 17 5-5-5-5"/>
+            <path d="M15 12H3"/>
+          </svg>
+          Sign in
+        </button>
+      </form>
+
+      <p class="login-help" id="loginHelp"></p>
+      <p class="login-help login-help--sub">Forgot your password? Ask your group admin for a quick reset.</p>
+    </div>
+  </div>
+
+  <div class="app" id="appShell" hidden>
+    <!-- ============ Sidebar ============ -->
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar navigation">
+      <a class="brand" href="#dashboard" data-nav="dashboard" aria-label="Friends Expense Manager home">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </span>
+        <span class="brand__text">
+          <strong id="sidebarBrandTitle">Friends</strong>
+          <span>Expense Manager</span>
+        </span>
+      </a>
+
+      <nav class="sidebar__nav" aria-label="Primary navigation">
+        <p class="nav-label">Menu</p>
+
+        <a href="#dashboard" class="nav-link is-active" data-nav="dashboard" data-page="Dashboard" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1.6"/>
+            <rect x="14" y="3" width="7" height="7" rx="1.6"/>
+            <rect x="3" y="14" width="7" height="7" rx="1.6"/>
+            <rect x="14" y="14" width="7" height="7" rx="1.6"/>
+          </svg>
+          <span>Dashboard</span>
+        </a>
+
+        <a href="#portal" class="nav-link" data-nav="portal" data-page="My Portal" id="portalNavLink" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 21a8 8 0 0 1 16 0"/>
+          </svg>
+          <span>My Portal</span>
+        </a>
+
+        <a href="#friends" class="nav-link" data-nav="friends" data-page="Friends">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span>Friends</span>
+        </a>
+
+        <a href="#expenses" class="nav-link" data-nav="expenses" data-page="Expenses">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z"/>
+            <path d="M9 7h6M9 11h6M9 15h4"/>
+          </svg>
+          <span>Expenses</span>
+        </a>
+
+        <a href="#settlements" class="nav-link" data-nav="settlements" data-page="Settlements">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+            <path d="M3 21v-5h5"/>
+          </svg>
+          <span>Settlements</span>
+        </a>
+
+        <a href="#reports" class="nav-link" data-nav="reports" data-page="Reports">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 3v18h18"/>
+            <path d="M7 16v-4M12 16V8M17 16v-6"/>
+          </svg>
+          <span>Reports</span>
+        </a>
+
+        <p class="nav-label nav-label--spaced">Management</p>
+
+        <a href="#admin" class="nav-link" data-nav="admin" data-page="Admin Panel" id="adminNavLink" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>Admin Panel</span>
+        </a>
+
+        <a href="#settings" class="nav-link" data-nav="settings" data-page="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+          </svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar__footer">
+        <div class="sidebar-card">
+          <div class="sidebar-card__head">
+            <span>Group pot</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 17l6-6 4 4 8-8"/>
+              <path d="M14 7h7v7"/>
+            </svg>
+          </div>
+          <strong id="sidebarTotal">Rs. 0</strong>
+          <div class="sidebar-card__bar" aria-hidden="true"><span id="sidebarBudgetBar"></span></div>
+          <p id="sidebarBudgetText">Tracked spending and budget usage.</p>
+        </div>
+        <p class="sidebar__note">Shared bills, zero awkward math.</p>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+    <div class="main">
+      <!-- ============ Top header ============ -->
+      <header class="topbar">
+        <div class="topbar__welcome">
+          <button class="icon-btn topbar__menu" id="menuToggle" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <div class="topbar__copy">
+            <h1 id="pageTitle">Welcome back, Admin!</h1>
+            <p id="pageSubtitle">Here's what's happening with your friends' expenses.</p>
+          </div>
+        </div>
+
+        <div class="topbar__actions">
+          <!-- Dark / Light Theme Toggle -->
+          <button class="icon-btn" id="themeToggleBtn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">
+            <svg class="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            <svg class="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none">
+              <circle cx="12" cy="5" r="3"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+          </button>
+
+          <!-- Notification dropdown -->
+          <div class="notification" id="notification">
+            <button class="icon-btn icon-btn--notification" id="notificationBtn" type="button" aria-label="Notifications" aria-haspopup="true" aria-expanded="false" aria-controls="notificationMenu">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+              </svg>
+              <span class="notification__dot" id="notificationDot" aria-hidden="true"></span>
+            </button>
+
+            <div class="dropdown" id="notificationMenu" aria-hidden="true">
+              <div class="dropdown__head">
+                <div>
+                  <strong id="notificationTitle">Notifications</strong>
+                  <span id="notificationSubtitle">Loading updates…</span>
+                </div>
+                <button class="dropdown__action" type="button" id="markReadBtn">Mark all read</button>
+              </div>
+
+              <div class="dropdown__list" id="notificationList"></div>
+
+              <button class="dropdown__footer" type="button" data-nav="expenses">View all expenses</button>
+            </div>
+          </div>
+
+          <!-- Profile -->
+          <button class="profile" id="profileBtn" type="button" aria-label="Open profile settings" data-nav="settings">
+            <span class="avatar" id="profileAvatar">A</span>
+            <span class="profile__text">
+              <strong id="profileName">Admin</strong>
+              <small id="profileRole">Group admin</small>
+            </span>
+            <svg class="profile__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </button>
+
+          <button class="btn btn--primary" id="addExpenseBtn" type="button" aria-label="Add expense">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span class="btn-label">Add Expense</span>
+          </button>
+
+          <button class="btn btn--ghost btn--sm topbar__logout" id="logoutBtn" type="button" aria-label="Logout" title="Logout">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <path d="m16 17 5-5-5-5"/>
+              <path d="M21 12H9"/>
+            </svg>
+            <span class="btn-label">Logout</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- ============ App content ============ -->
+      <main class="content" id="mainContent">
+        <!-- ==================== Dashboard ==================== -->
+        <section class="view is-active" id="view-dashboard" data-view-panel="dashboard">
+          <section class="stats" aria-label="Dashboard summary">
+            <article class="stat-card">
+              <div class="stat-card__head">
+                <span class="stat-icon stat-icon--blue" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z"/>
+                    <path d="M9 7h6M9 11h6M9 15h4"/>
+                  </svg>
+                </span>
+                <span class="trend trend--up" id="statTotalTrend">This month</span>
+              </div>
+              <p class="stat-card__label">Total Group Expenses</p>
+              <p class="stat-card__value" id="statTotal"><span>Rs.</span>0</p>
+              <p class="stat-card__hint" id="statTotalHint">No expenses tracked yet</p>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-card__head">
+                <span class="stat-icon stat-icon--green" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3v12"/>
+                    <path d="m7 10 5 5 5-5"/>
+                    <path d="M5 21h14"/>
+                  </svg>
+                </span>
+                <span class="trend trend--info" id="statReceiveTrend">0 friends</span>
+              </div>
+              <p class="stat-card__label">You Should Receive</p>
+              <p class="stat-card__value" id="statReceive"><span>Rs.</span>0</p>
+              <p class="stat-card__hint" id="statReceiveHint">All square right now</p>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-card__head">
+                <span class="stat-icon stat-icon--orange" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 21V9"/>
+                    <path d="m7 14 5-5 5 5"/>
+                    <path d="M5 3h14"/>
+                  </svg>
+                </span>
+                <span class="trend trend--warning" id="statOweTrend">0 friends</span>
+              </div>
+              <p class="stat-card__label">You Owe</p>
+              <p class="stat-card__value" id="statOwe"><span>Rs.</span>0</p>
+              <p class="stat-card__hint" id="statOweHint">Nothing pending</p>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-card__head">
+                <span class="stat-icon stat-icon--navy" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                </span>
+                <span class="trend trend--up">Active</span>
+              </div>
+              <p class="stat-card__label">Total Friends</p>
+              <p class="stat-card__value" id="statFriends"><span>&nbsp;</span>0</p>
+              <p class="stat-card__hint" id="statFriendsHint">Your shared circle</p>
+            </article>
+          </section>
+
+          <div class="dashboard-grid">
+            <div class="main-column">
+              <section class="panel" aria-labelledby="friendsOverviewTitle">
+                <div class="panel__head">
+                  <div>
+                    <h2 class="panel__title" id="friendsOverviewTitle">Friends Overview</h2>
+                    <p class="panel__sub" id="friendsOverviewSub">Balances and contributions for this month</p>
+                  </div>
+                  <button class="text-link" type="button" data-nav="friends">
+                    View all
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M5 12h14M13 6l6 6-6 6"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="friends-grid" id="friendsOverviewGrid"></div>
+              </section>
+
+              <section class="panel" aria-labelledby="recentTitle">
+                <div class="panel__head">
+                  <div>
+                    <h2 class="panel__title" id="recentTitle">Recent Expenses</h2>
+                    <p class="panel__sub">The latest meals added to the group pot</p>
+                  </div>
+                  <button class="text-link" type="button" data-nav="expenses">
+                    View all
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M5 12h14M13 6l6 6-6 6"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="expense-list" id="recentExpensesList"></div>
+              </section>
+            </div>
+
+            <div class="side-column">
+              <section class="panel" aria-labelledby="quickTitle">
+                <div class="panel__head">
+                  <div>
+                    <h2 class="panel__title" id="quickTitle">Quick Actions</h2>
+                    <p class="panel__sub">Shortcuts for everyday money matters</p>
+                  </div>
+                </div>
+
+                <div class="quick-actions">
+                  <button class="quick-action" type="button" data-action="add-expense">
+                    <span class="quick-action__icon quick-action__icon--blue" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M12 5v14M5 12h14"/>
+                      </svg>
+                    </span>
+                    <span class="quick-action__copy">
+                      <strong>Add New Expense</strong>
+                      <small>Split a fresh bill</small>
+                    </span>
+                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m9 6 6 6-6 6"/>
+                    </svg>
+                  </button>
+
+                  <button class="quick-action" type="button" data-nav="friends">
+                    <span class="quick-action__icon quick-action__icon--navy" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                      </svg>
+                    </span>
+                    <span class="quick-action__copy">
+                      <strong>View All Friends</strong>
+                      <small>See paid &amp; balances</small>
+                    </span>
+                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m9 6 6 6-6 6"/>
+                    </svg>
+                  </button>
+
+                  <button class="quick-action" type="button" data-nav="settlements">
+                    <span class="quick-action__icon quick-action__icon--green" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                        <path d="M3 21v-5h5"/>
+                      </svg>
+                    </span>
+                    <span class="quick-action__copy">
+                      <strong>Check Settlements</strong>
+                      <small>Close the loop</small>
+                    </span>
+                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m9 6 6 6-6 6"/>
+                    </svg>
+                  </button>
+
+                  <button class="quick-action" type="button" data-nav="reports">
+                    <span class="quick-action__icon quick-action__icon--orange" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18"/>
+                        <path d="M7 16v-4M12 16V8M17 16v-6"/>
+                      </svg>
+                    </span>
+                    <span class="quick-action__copy">
+                      <strong>View Reports</strong>
+                      <small>Spot the spending trends</small>
+                    </span>
+                    <svg class="quick-action__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m9 6 6 6-6 6"/>
+                    </svg>
+                  </button>
+                </div>
+              </section>
+
+              <section class="panel" aria-labelledby="chartTitle">
+                <div class="panel__head">
+                  <div>
+                    <h2 class="panel__title" id="chartTitle">Expense Distribution</h2>
+                    <p class="panel__sub">Where the group's money went</p>
+                  </div>
+                  <span class="chip" id="chartChip">All time</span>
+                </div>
+
+                <div class="chart-wrap">
+                  <div class="donut" id="donutChart" role="img" aria-label="Spending distribution across meal categories">
+                    <div class="donut__center">
+                      <span>Total spent</span>
+                      <strong id="chartTotal">Rs. 0</strong>
+                      <small>Tracked</small>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="chart-legend" id="chartLegend"></div>
+                <p class="chart-note" id="chartNote">No meals tracked yet.</p>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== Friend portal ==================== -->
+        <section class="view" id="view-portal" data-view-panel="portal" hidden>
+          <div class="portal-stack">
+            <section class="panel" aria-labelledby="portalLedgerTitle">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title" id="portalLedgerTitle">My Balance &amp; History</h2>
+                  <p class="panel__sub" id="portalSub">Your personal view of the group ledger.</p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <button class="btn btn--soft btn--sm" type="button" id="portalExportCsvBtn">Export My CSV</button>
+                  <span class="chip" id="portalLoginChip">Login ID</span>
+                </div>
+              </div>
+              <div class="ledger ledger--portal" id="portalLedger"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="portalAccountTitle">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title" id="portalAccountTitle">Account &amp; Security</h2>
+                  <p class="panel__sub">Only you can see this portal after signing in.</p>
+                </div>
+              </div>
+
+              <div class="account-id">
+                <span>Your login ID</span>
+                <strong id="portalAccountId">—</strong>
+              </div>
+
+              <form class="password-form" id="portalPasswordForm" data-password-form novalidate>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="portalCurrentPassword">Current password</label>
+                    <input type="password" id="portalCurrentPassword" class="js-current-password" autocomplete="current-password" required>
+                  </div>
+                  <div class="field">
+                    <label for="portalNewPassword">New password</label>
+                    <input type="password" id="portalNewPassword" class="js-new-password" autocomplete="new-password" minlength="6" required>
+                  </div>
+                  <div class="field">
+                    <label for="portalConfirmPassword">Confirm new password</label>
+                    <input type="password" id="portalConfirmPassword" class="js-confirm-password" autocomplete="new-password" minlength="6" required>
+                  </div>
+                </div>
+                <div class="settings-form__foot">
+                  <p id="portalPasswordHint">Use at least 6 characters.</p>
+                  <button class="btn btn--primary" type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5"/>
+                    </svg>
+                    Update Password
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <!-- ==================== Friends ==================== -->
+        <section class="view" id="view-friends" data-view-panel="friends" hidden>
+          <section class="panel">
+            <div class="panel__head">
+              <div>
+                <h2 class="panel__title">All Friends</h2>
+                <p class="panel__sub" id="friendsPageSub">Everyone in the group and where they stand.</p>
+              </div>
+              <button class="btn btn--soft btn--sm" type="button" id="addFriendBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Add Friend
+              </button>
+            </div>
+            <div class="friends-grid friends-grid--wide" id="friendsPageGrid"></div>
+          </section>
+        </section>
+
+        <!-- ==================== Expenses ==================== -->
+        <section class="view" id="view-expenses" data-view-panel="expenses" hidden>
+          <section class="panel">
+            <div class="panel__head">
+              <div>
+                <h2 class="panel__title">Expense History</h2>
+                <p class="panel__sub" id="expensesSub">Every shared bill in one place.</p>
+              </div>
+              <button class="text-link" type="button" data-action="add-expense">
+                Add expense
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="toolbar">
+              <label class="search-field" for="expenseSearch">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"/>
+                  <path d="m20 20-3.5-3.5"/>
+                </svg>
+                <input type="search" id="expenseSearch" placeholder="Search by title, payer or amount…" autocomplete="off">
+              </label>
+
+              <select id="expenseFilter" class="toolbar__select" aria-label="Filter expenses by meal category">
+                <option value="all">All categories</option>
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+                <option value="tea">Tea</option>
+                <option value="snacks">Snacks</option>
+              </select>
+
+              <span class="chip" id="expenseCount">0 expenses</span>
+            </div>
+
+            <div class="expense-list" id="expensesList"></div>
+
+            <div class="empty-state" id="expensesEmpty" hidden>
+              <span class="empty-state__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z"/>
+                  <path d="M9 8h6M9 12h4"/>
+                </svg>
+              </span>
+              <strong>No matching expenses</strong>
+              <p>Try a different search or add a new bill to the group pot.</p>
+              <button class="btn btn--primary btn--sm" type="button" data-action="add-expense">Add Expense</button>
+            </div>
+          </section>
+        </section>
+
+        <!-- ==================== Settlements ==================== -->
+        <section class="view" id="view-settlements" data-view-panel="settlements" hidden>
+          <div class="content-grid">
+            <section class="panel">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title">Suggested Settlements</h2>
+                  <p class="panel__sub" id="settlementsSub">The fewest payments needed to square up.</p>
+                </div>
+                <span class="chip" id="settlementsChip">0 transfers</span>
+              </div>
+              <div class="settlement-list" id="settlementsList"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title">Recent Settlements</h2>
+                  <p class="panel__sub">Payments already made between friends.</p>
+                </div>
+              </div>
+              <div class="settlement-history" id="settlementsHistory"></div>
+            </section>
+          </div>
+        </section>
+
+        <!-- ==================== Reports ==================== -->
+        <section class="view" id="view-reports" data-view-panel="reports" hidden>
+          <section class="stats stats--report" aria-label="Report summary">
+            <article class="stat-card">
+              <div class="stat-card__head">
+                <span class="stat-icon stat-icon--blue" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3v18h18"/>
+                    <path d="M7 16v-4M12 16V8M17 16v-6"/>
+                  </svg>
+                </span>
+              </div>
+              <p class="stat-card__label">Total Tracked</p>
+              <p class="stat-card__value" id="reportTotal"><span>Rs.</span>0</p>
+              <p class="stat-card__hint" id="reportTotalHint">Across all meals</p>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-card__head">
+                <span class="stat-icon stat-icon--green" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19V5M4 19h16"/>
+                    <path d="m7 15 4-4 3 3 5-6"/>
+                  </svg>
+                </span>
+              </div>
+              <p class="stat-card__label">Average Per Meal</p>
+              <p class="stat-card__value" id="reportAverage"><span>Rs.</span>0</p>
+              <p class="stat-card__hint" id="reportAverageHint">Across all expenses</p>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-card__head">
+                <span class="stat-icon stat-icon--orange" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.2 15.9A10 10 0 1 1 8 2.8"/>
+                    <path d="M22 12A10 10 0 0 0 12 2v10Z"/>
+                  </svg>
+                </span>
+              </div>
+              <p class="stat-card__label">Top Category</p>
+              <p class="stat-card__value" id="reportTopCategory"><span>&nbsp;</span>—</p>
+              <p class="stat-card__hint" id="reportTopCategoryHint">No expenses yet</p>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-card__head">
+                <span class="stat-icon stat-icon--navy" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                </span>
+              </div>
+              <p class="stat-card__label">Active Members</p>
+              <p class="stat-card__value" id="reportActiveFriends"><span>&nbsp;</span>0</p>
+              <p class="stat-card__hint" id="reportActiveFriendsHint">Friends sharing the pot</p>
+            </article>
+          </section>
+
+          <div class="reports-grid">
+            <section class="panel">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title">Spending by Category</h2>
+                  <p class="panel__sub">Where the group's money goes.</p>
+                </div>
+                <button class="btn btn--ghost btn--sm" type="button" id="exportCsvBtn">Export CSV</button>
+              </div>
+              <div class="bar-list" id="reportCategoryBars"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title">Top Contributors</h2>
+                  <p class="panel__sub">Friends who have paid the most.</p>
+                </div>
+              </div>
+              <div class="contributor-list" id="reportContributors"></div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel__head">
+              <div>
+                <h2 class="panel__title">Monthly Breakdown</h2>
+                <p class="panel__sub">Shared spending grouped by month.</p>
+              </div>
+            </div>
+            <div class="monthly-list" id="reportMonths"></div>
+          </section>
+        </section>
+
+        <!-- ==================== Settings ==================== -->
+        <section class="view" id="view-settings" data-view-panel="settings" hidden>
+          <div class="settings-grid">
+            <section class="panel">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title">Group Settings</h2>
+                  <p class="panel__sub">Personalise the dashboard for your group.</p>
+                </div>
+              </div>
+
+              <form class="settings-form" id="settingsForm" novalidate>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="settingsName">Your display name</label>
+                    <input type="text" id="settingsName" name="displayName" autocomplete="name" required>
+                  </div>
+
+                  <div class="field">
+                    <label for="settingsBudget">Monthly budget (Rs.)</label>
+                    <input type="number" id="settingsBudget" name="budget" min="0" step="any" inputmode="decimal">
+                  </div>
+                </div>
+
+                <div class="settings-form__foot">
+                  <p>Changes apply globally to your profile.</p>
+                  <button class="btn btn--primary" type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5"/>
+                    </svg>
+                    Save Settings
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title">Account Security</h2>
+                  <p class="panel__sub">Your account login details.</p>
+                </div>
+              </div>
+
+              <div class="account-id">
+                <span>Your login ID</span>
+                <strong id="settingsLoginId">—</strong>
+              </div>
+
+              <form class="password-form" id="settingsPasswordForm" data-password-form novalidate>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="settingsCurrentPassword">Current password</label>
+                    <input type="password" id="settingsCurrentPassword" class="js-current-password" autocomplete="current-password" required>
+                  </div>
+                  <div class="field">
+                    <label for="settingsNewPassword">New password</label>
+                    <input type="password" id="settingsNewPassword" class="js-new-password" autocomplete="new-password" minlength="6" required>
+                  </div>
+                  <div class="field">
+                    <label for="settingsConfirmPassword">Confirm new password</label>
+                    <input type="password" id="settingsConfirmPassword" class="js-confirm-password" autocomplete="new-password" minlength="6" required>
+                  </div>
+                </div>
+                <div class="settings-form__foot">
+                  <p>Use at least 6 characters.</p>
+                  <button class="btn btn--primary" type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5"/>
+                    </svg>
+                    Update Password
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title">Data &amp; Backup</h2>
+                  <p class="panel__sub">Export or import your group data backup.</p>
+                </div>
+              </div>
+
+              <div class="data-actions">
+                <button class="data-action" type="button" id="exportDataBtn">
+                  <span class="data-action__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 3v12"/>
+                      <path d="m7 10 5 5 5-5"/>
+                      <path d="M5 21h14"/>
+                    </svg>
+                  </span>
+                  <span>
+                    <strong>Export data</strong>
+                    <small>Download a JSON backup of everything.</small>
+                  </span>
+                </button>
+
+                <button class="data-action" type="button" id="importDataBtn">
+                  <span class="data-action__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 21V9"/>
+                      <path d="m7 14 5-5 5 5"/>
+                      <path d="M5 3h14"/>
+                    </svg>
+                  </span>
+                  <span>
+                    <strong>Import backup</strong>
+                    <small>Restore data from a JSON backup file.</small>
+                  </span>
+                </button>
+                <input type="file" id="importDataInput" accept="application/json,.json" style="display:none">
+
+                <button class="data-action data-action--danger" type="button" id="resetDataBtn">
+                  <span class="data-action__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/>
+                      <path d="M3 3v5h5"/>
+                    </svg>
+                  </span>
+                  <span>
+                    <strong>Clear all data</strong>
+                    <small>Remove all friends, expenses and settlements.</small>
+                  </span>
+                </button>
+              </div>
+
+              <p class="settings-note">
+                Online data sync powered by Supabase with Row Level Security.
+              </p>
+            </section>
+          </div>
+        </section>
+
+        <!-- ==================== Admin Panel (Admin Only) ==================== -->
+        <section class="view" id="view-admin" data-view-panel="admin" hidden>
+          <div class="admin-grid">
+            <!-- Member Directory -->
+            <section class="panel">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title">Member Directory</h2>
+                  <p class="panel__sub">Manage group members, credentials, roles and account access.</p>
+                </div>
+                <button class="btn btn--primary btn--sm" type="button" id="adminAddMemberBtn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14"/>
+                  </svg>
+                  Add Member
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="admin-table" id="adminMembersTable">
+                  <thead>
+                    <tr>
+                      <th>Member</th>
+                      <th>Login ID</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Security</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminMembersList">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <!-- Group Identity & Budget -->
+            <section class="panel">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title">Group Identity &amp; Budget</h2>
+                  <p class="panel__sub">Shared pot name and monthly spending threshold across all members.</p>
+                </div>
+              </div>
+              <form class="settings-form" id="adminGroupForm" novalidate>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="adminGroupName">Group Name</label>
+                    <input type="text" id="adminGroupName" name="groupName" placeholder="Friends Expense Manager" required>
+                  </div>
+                  <div class="field">
+                    <label for="adminGroupBudget">Monthly Budget (Rs.)</label>
+                    <input type="number" id="adminGroupBudget" name="budget" min="0" step="any" placeholder="0">
+                  </div>
+                </div>
+                <div class="settings-form__foot">
+                  <p>Changes synchronize globally to all members in real-time.</p>
+                  <button class="btn btn--primary" type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5"/>
+                    </svg>
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            <!-- Activity & Security Audit Log -->
+            <section class="panel">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title">Activity &amp; Security Audit Log</h2>
+                  <p class="panel__sub">Track who added, modified or settled group expenses.</p>
+                </div>
+                <button class="btn btn--ghost btn--sm" type="button" id="refreshAuditBtn">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                    <path d="M16 21h5v-5"/>
+                  </svg>
+                  Refresh
+                </button>
+              </div>
+              <div class="audit-list" id="adminAuditList">
+                <!-- Populated dynamically -->
+              </div>
+            </section>
+
+            <!-- Danger Zone -->
+            <section class="panel panel--danger">
+              <div class="panel__head">
+                <div>
+                  <h2 class="panel__title" style="color: var(--orange-700)">Danger Zone</h2>
+                  <p class="panel__sub">Irreversible actions that purge group financial transactions.</p>
+                </div>
+              </div>
+              <div class="danger-box">
+                <div class="danger-box__copy">
+                  <strong>Reset All Expenses &amp; Settlements</strong>
+                  <p>Permanently deletes all expenses, splits, and settlement history. Member accounts and profiles are preserved. Requires typing confirmation.</p>
+                </div>
+                <button class="btn btn--danger btn--sm" type="button" id="adminResetDataBtn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                  Reset Group Data
+                </button>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <footer class="page-footer">
+          <span>&copy; 2026 Friends Expense Manager</span>
+          <span>Made for good meals &amp; fair splits.</span>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ Add / Edit Expense modal ============ -->
+  <div class="modal" id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle" aria-hidden="true">
+    <div class="modal__overlay" data-close-modal></div>
+
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div class="modal__title-wrap">
+          <span class="modal__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1Z"/>
+              <path d="M9 7h6M9 11h6M9 15h4"/>
+            </svg>
+          </span>
+          <div>
+            <h2 id="expenseModalTitle">Add a new expense</h2>
+            <p id="expenseModalSubtitle">Split a bill with your friends in a few clicks.</p>
+          </div>
+        </div>
+        <button class="icon-btn icon-btn--close" type="button" data-close-modal aria-label="Close expense form">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18"/>
+          </svg>
+        </button>
+      </div>
+
+      <form class="expense-form" id="expenseForm" novalidate>
+        <div class="form-grid">
+          <div class="field field--full">
+            <label for="expenseTitle">Expense title</label>
+            <input type="text" id="expenseTitle" name="title" placeholder="e.g. Friday dinner at Burger Lab" autocomplete="off" required>
+          </div>
+
+          <div class="field">
+            <label for="expenseAmount">Total bill amount</label>
+            <div class="amount-input">
+              <span>Rs.</span>
+              <input type="number" id="expenseAmount" name="amount" placeholder="0" min="0" step="any" inputmode="decimal" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="expenseCategory">Meal category</label>
+            <select id="expenseCategory" name="category">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch" selected>Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="tea">Tea</option>
+              <option value="snacks">Snacks</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="expenseDate">Date</label>
+            <input type="date" id="expenseDate" name="date">
+          </div>
+
+          <div class="field">
+            <label for="expensePayer">Paid by</label>
+            <select id="expensePayer" name="payer"></select>
+          </div>
+        </div>
+
+        <div class="participants">
+          <div class="participants__head">
+            <div>
+              <h3>Participants</h3>
+              <p>Choose who shared this bill and adjust their share.</p>
+            </div>
+            <div class="participants__tools">
+              <label class="select-all" for="selectAllParticipants">
+                <input type="checkbox" id="selectAllParticipants">
+                <span>Select all</span>
+              </label>
+              <button class="text-link" type="button" id="splitEquallyBtn">Split equally</button>
+            </div>
+          </div>
+
+          <div class="participants__grid" id="participantGrid"></div>
+
+          <div class="allocation" id="allocationBar">
+            <span>Allocated <strong id="allocationAmount">Rs. 0</strong> of <strong id="allocationTotal">Rs. 0</strong></span>
+            <span class="allocation__status" id="allocationStatus">Enter a bill amount</span>
+          </div>
+        </div>
+
+        <div class="modal__foot">
+          <button class="btn btn--ghost" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn--primary" type="submit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+            <span id="expenseSubmitLabel">Save Expense</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ Add Friend / Member modal ============ -->
+  <div class="modal modal--sm" id="friendModal" role="dialog" aria-modal="true" aria-labelledby="friendModalTitle" aria-hidden="true">
+    <div class="modal__overlay" data-close-modal></div>
+
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div class="modal__title-wrap">
+          <span class="modal__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M19 8v6M22 11h-6"/>
+            </svg>
+          </span>
+          <div>
+            <h2 id="friendModalTitle">Add a friend</h2>
+            <p id="friendModalSubtitle">Grow the group and keep the splits fair.</p>
+          </div>
+        </div>
+        <button class="icon-btn icon-btn--close" type="button" data-close-modal aria-label="Close add friend form">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18"/>
+          </svg>
+        </button>
+      </div>
+
+      <form class="expense-form" id="friendForm" novalidate>
+        <div class="field">
+          <label for="friendName">Friend's name</label>
+          <input type="text" id="friendName" name="name" placeholder="e.g. Omar" autocomplete="off" maxlength="30" required>
+        </div>
+
+        <div class="field" id="friendLoginIdField">
+          <label for="friendLoginId">Custom Login ID (optional)</label>
+          <input type="text" id="friendLoginId" name="loginId" placeholder="e.g. omar" autocomplete="off" maxlength="24">
+        </div>
+
+        <div class="field" id="friendRoleField">
+          <label for="friendRole">Account Role</label>
+          <select id="friendRole" name="role">
+            <option value="friend" selected>Friend (My Portal only)</option>
+            <option value="admin">Admin (Full Management)</option>
+          </select>
+        </div>
+
+        <div class="modal__foot">
+          <button class="btn btn--ghost" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn--primary" type="submit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Save Member
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ Friend history modal ============ -->
+  <div class="modal ledger-modal" id="friendLedgerModal" role="dialog" aria-modal="true" aria-labelledby="friendLedgerTitle" aria-hidden="true">
+    <div class="modal__overlay" data-close-modal></div>
+
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div class="modal__title-wrap">
+          <span class="avatar ledger-modal__avatar" id="friendLedgerAvatar" aria-hidden="true">A</span>
+          <div>
+            <h2 id="friendLedgerTitle">Friend history</h2>
+            <p id="friendLedgerSub">Balances and shared activity</p>
+          </div>
+        </div>
+        <button class="icon-btn icon-btn--close" type="button" data-close-modal aria-label="Close friend history">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="ledger" id="friendLedgerContent"></div>
+
+      <div class="modal__foot">
+        <button class="btn btn--ghost" type="button" data-close-modal>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Accessible Confirm Dialog Modal ============ -->
+  <div class="modal modal--sm confirm-modal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-hidden="true">
+    <div class="modal__overlay" data-close-confirm></div>
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div class="modal__title-wrap">
+          <span class="modal__icon modal__icon--warning" id="confirmModalIcon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </span>
+          <div>
+            <h2 id="confirmModalTitle">Are you sure?</h2>
+            <p id="confirmModalMessage">This action cannot be undone.</p>
+          </div>
+        </div>
+      </div>
+      <div class="confirm-input-wrap" id="confirmInputWrap" hidden>
+        <p class="confirm-prompt" id="confirmPromptText">Please type <strong>RESET DATA</strong> to confirm:</p>
+        <input type="text" id="confirmInput" class="confirm-input" autocomplete="off" spellcheck="false" placeholder="Type here...">
+      </div>
+      <div class="modal__foot">
+        <button class="btn btn--ghost" type="button" id="confirmCancelBtn" data-close-confirm>Cancel</button>
+        <button class="btn btn--primary" type="button" id="confirmActionBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Modular script entry for Vite / ES Modules -->
+  <script type="module" src="js/script.js"></script>
+</body>
+</html>

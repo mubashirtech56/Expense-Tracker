@@ -1,0 +1,17 @@
+{
+  "name": "Friends Expense Manager",
+  "short_name": "Expense Manager",
+  "description": "Shared meals, balances, and zero awkward math",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1426",
+  "theme_color": "#0b1426",
+  "icons": [
+    {
+      "src": "assets/favicon.svg",
+      "sizes": "64x64 192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

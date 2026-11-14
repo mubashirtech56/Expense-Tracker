@@ -1,0 +1,17 @@
+{
+  "name": "friends-expense-manager",
+  "version": "2.0.0",
+  "description": "Friends Expense Manager — Professional shared group expense tracker backed by Supabase",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0"
+  }
+}
