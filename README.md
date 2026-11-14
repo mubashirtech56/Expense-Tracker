@@ -113,3 +113,4 @@ For full step-by-step instructions on setting up Supabase, database schema, and 
 
 ## 📄 License
 MIT © 2026 Friends Expense Manager
+# Expense-Tracker
