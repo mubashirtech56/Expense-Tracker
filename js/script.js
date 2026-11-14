@@ -144,7 +144,6 @@ const initializeApp = async () => {
   const logoutBtn = document.getElementById("logoutBtn");
   const toggleLoginPasswordBtn = document.getElementById("toggleLoginPasswordBtn");
 
-  const themeToggleBtn = document.getElementById("themeToggleBtn");
   const sidebar = document.getElementById("sidebar");
   const sidebarOverlay = document.getElementById("sidebarOverlay");
   const menuToggle = document.getElementById("menuToggle");
@@ -304,35 +303,7 @@ const initializeApp = async () => {
   const confirmModalCancelBtn = document.getElementById("confirmCancelBtn");
   const confirmModalOkBtn = document.getElementById("confirmActionBtn");
 
-  /* ------------------------------------------------------------------------
-     Theme Management (Phase 3)
-     ---------------------------------------------------------------------- */
-  function initTheme() {
-    const saved = localStorage.getItem("fem_theme");
-    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const theme = saved || (prefersDark ? "dark" : "light");
-    applyTheme(theme);
-  }
-
-  function applyTheme(theme) {
-    if (theme === "dark") {
-      document.documentElement.setAttribute("data-theme", "dark");
-      themeToggleBtn?.setAttribute("aria-label", "Switch to light theme");
-      themeToggleBtn?.setAttribute("title", "Switch to light theme");
-    } else {
-      document.documentElement.removeAttribute("data-theme");
-      themeToggleBtn?.setAttribute("aria-label", "Switch to dark theme");
-      themeToggleBtn?.setAttribute("title", "Switch to dark theme");
-    }
-    localStorage.setItem("fem_theme", theme);
-  }
-
-  themeToggleBtn?.addEventListener("click", () => {
-    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    applyTheme(isDark ? "light" : "dark");
-  });
-
-  initTheme();
+  localStorage.removeItem("fem_theme");
 
   if (!isSupabaseConfigured) {
     if (unconfiguredScreen) unconfiguredScreen.hidden = false;
