@@ -10,24 +10,51 @@
   <meta name="theme-color" content="#0b1426">
   <title>Friends Expense Manager — Dashboard</title>
 
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script type="importmap">
-    {
-      "imports": {
-        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/+esm"
-      }
-    }
-  </script>
 </head>
 
 <body>
   <a class="skip-link" href="#mainContent">Skip to content</a>
+
+  <!-- ============ Unconfigured Production Screen ============ -->
+  <div class="login-screen" id="unconfiguredScreen" hidden>
+    <div class="login-card">
+      <div class="login-brand">
+        <span class="brand__mark" aria-hidden="true" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </span>
+        <span class="brand__text">
+          <strong>Friends</strong>
+          <span>Expense Manager</span>
+        </span>
+      </div>
+
+      <div class="login-copy">
+        <span class="login-eyebrow" style="color: #ef4444;">Configuration Required</span>
+        <h1>App Not Configured</h1>
+        <p>This deployment is missing required Supabase environment variables (<code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>).</p>
+      </div>
+
+      <div class="unconfigured-guide">
+        <p style="margin: 0 0 0.5rem 0; font-weight: 600; color: var(--text);">How to resolve:</p>
+        <ol style="margin: 0; padding-left: 1.25rem;">
+          <li>Create a Supabase project at <a href="https://supabase.com" target="_blank" rel="noopener" style="color: var(--brand-600);">supabase.com</a>.</li>
+          <li>Set GitHub repository secrets <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>.</li>
+          <li>Re-run the GitHub Actions deployment workflow.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
 
   <!-- ============ Login ============ -->
   <div class="login-screen" id="loginScreen">
@@ -64,7 +91,7 @@
         <div class="field">
           <label for="loginPassword">Password</label>
           <div class="password-toggle-wrap">
-            <input type="password" id="loginPassword" name="password" placeholder="Enter password (default: 123456)"
+            <input type="password" id="loginPassword" name="password" placeholder="Enter your password"
               autocomplete="current-password" required>
             <button type="button" class="password-toggle-btn" id="toggleLoginPasswordBtn"
               aria-label="Show or hide password" title="Toggle password visibility">
@@ -90,7 +117,7 @@
         </button>
       </form>
 
-      <p class="login-help" id="loginHelp">Default password for all accounts: <strong>123456</strong> (Admin: <strong>admin</strong>)</p>
+      <p class="login-help" id="loginHelp">Sign in with the temporary password provided by your admin.</p>
       <p class="login-help login-help--sub">Forgot your password? Ask your group admin for a quick reset.</p>
     </div>
   </div>
@@ -320,6 +347,14 @@
 
       <!-- ============ App content ============ -->
       <main class="content" id="mainContent">
+        <!-- Offline Warning Banner -->
+        <div class="offline-banner" id="offlineBanner" role="status" hidden>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span aria-hidden="true">⚠️</span>
+            <strong>Offline — showing last saved data</strong>
+          </div>
+          <button class="btn btn--sm btn--soft" type="button" id="offlineRetryBtn">Retry Connection</button>
+        </div>
         <!-- ==================== Dashboard ==================== -->
         <section class="view is-active" id="view-dashboard" data-view-panel="dashboard">
           <section class="stats" aria-label="Dashboard summary">
@@ -578,21 +613,21 @@
                   <div class="field">
                     <label for="portalCurrentPassword">Current password</label>
                     <input type="password" id="portalCurrentPassword" class="js-current-password"
-                      placeholder="Default: 123456" autocomplete="current-password">
+                      placeholder="Current password" autocomplete="current-password">
                   </div>
                   <div class="field">
                     <label for="portalNewPassword">New password</label>
                     <input type="password" id="portalNewPassword" class="js-new-password" autocomplete="new-password"
-                      minlength="6" required>
+                      minlength="8" required>
                   </div>
                   <div class="field">
                     <label for="portalConfirmPassword">Confirm new password</label>
                     <input type="password" id="portalConfirmPassword" class="js-confirm-password"
-                      autocomplete="new-password" minlength="6" required>
+                      autocomplete="new-password" minlength="8" required>
                   </div>
                 </div>
                 <div class="settings-form__foot">
-                  <p id="portalPasswordHint">Use at least 6 characters.</p>
+                  <p id="portalPasswordHint">Use at least 8 characters.</p>
                   <button class="btn btn--primary" type="submit">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
                       stroke-linejoin="round" aria-hidden="true">
@@ -864,21 +899,21 @@
                   <div class="field">
                     <label for="settingsCurrentPassword">Current password</label>
                     <input type="password" id="settingsCurrentPassword" class="js-current-password"
-                      placeholder="Default: 123456" autocomplete="current-password">
+                      placeholder="Current password" autocomplete="current-password">
                   </div>
                   <div class="field">
                     <label for="settingsNewPassword">New password</label>
                     <input type="password" id="settingsNewPassword" class="js-new-password" autocomplete="new-password"
-                      minlength="6" required>
+                      minlength="8" required>
                   </div>
                   <div class="field">
                     <label for="settingsConfirmPassword">Confirm new password</label>
                     <input type="password" id="settingsConfirmPassword" class="js-confirm-password"
-                      autocomplete="new-password" minlength="6" required>
+                      autocomplete="new-password" minlength="8" required>
                   </div>
                 </div>
                 <div class="settings-form__foot">
-                  <p>Use at least 6 characters.</p>
+                  <p>Use at least 8 characters.</p>
                   <button class="btn btn--primary" type="submit">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
                       stroke-linejoin="round" aria-hidden="true">
@@ -970,6 +1005,11 @@
                   Add Member
                 </button>
               </div>
+
+              <div class="field" style="margin-bottom: 1rem; max-width: 360px;">
+                <input type="search" id="adminMemberSearch" aria-label="Search members by name or login ID" placeholder="Search members by name or login ID..." autocomplete="off">
+              </div>
+
               <div class="table-responsive">
                 <table class="admin-table" id="adminMembersTable">
                   <thead>
@@ -993,8 +1033,8 @@
             <section class="panel">
               <div class="panel__head">
                 <div>
-                  <h2 class="panel__title">Group Identity &amp; Budget</h2>
-                  <p class="panel__sub">Shared pot name and monthly spending threshold across all members.</p>
+                  <h2 class="panel__title">Group Identity &amp; Permissions</h2>
+                  <p class="panel__sub">Shared pot name, monthly spending threshold and group member privileges.</p>
                 </div>
               </div>
               <form class="settings-form" id="adminGroupForm" novalidate>
@@ -1009,6 +1049,14 @@
                     <input type="number" id="adminGroupBudget" name="budget" min="0" step="any" placeholder="0">
                   </div>
                 </div>
+
+                <div class="field field--checkbox" style="display: flex; align-items: center; gap: 0.6rem; margin-top: 1rem;">
+                  <input type="checkbox" id="adminAllowFriendsAddExpenses" name="allowFriendsToAddExpenses" style="width: auto; cursor: pointer;">
+                  <label for="adminAllowFriendsAddExpenses" style="margin: 0; cursor: pointer; font-weight: 500;">
+                    Allow friends to add expenses where they are the payer
+                  </label>
+                </div>
+
                 <div class="settings-form__foot">
                   <p>Changes synchronize globally to all members in real-time.</p>
                   <button class="btn btn--primary" type="submit">
@@ -1309,6 +1357,77 @@
         <button class="btn btn--ghost" type="button" id="confirmCancelBtn" data-close-confirm>Cancel</button>
         <button class="btn btn--primary" type="button" id="confirmActionBtn">Confirm</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ============ Temp Password Modal ============ -->
+  <div class="modal modal--sm" id="tempPasswordModal" role="dialog" aria-modal="true"
+    aria-labelledby="tempPasswordTitle" aria-hidden="true">
+    <div class="modal__overlay" data-close-modal></div>
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div class="modal__title-wrap">
+          <span class="modal__icon" aria-hidden="true" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </span>
+          <div>
+            <h2 id="tempPasswordTitle">Temporary Password</h2>
+            <p id="tempPasswordSub">Share this password with the member. It will only be shown once.</p>
+          </div>
+        </div>
+        <button class="icon-btn icon-btn--close" type="button" data-close-modal aria-label="Close dialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+      <div style="padding: 1.25rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; background: var(--slate-bg); padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--line); font-family: monospace; font-size: 1.1rem;">
+          <span id="tempPasswordDisplay" style="user-select: all; word-break: break-all; font-weight: 700; color: var(--primary);"></span>
+          <button class="btn btn--sm btn--soft" type="button" id="copyTempPasswordBtn">Copy</button>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-top: 0.75rem;">The member will be forced to choose a permanent password (min 8 characters) on their first sign-in.</p>
+      </div>
+      <div class="modal__foot">
+        <button class="btn btn--primary" type="button" data-close-modal style="width: 100%;">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Force Password Change Modal ============ -->
+  <div class="modal modal--sm" id="forcePasswordModal" role="dialog" aria-modal="true"
+    aria-labelledby="forcePasswordTitle" aria-hidden="true" data-locked="true">
+    <div class="modal__overlay"></div>
+    <div class="modal__dialog">
+      <div class="modal__head">
+        <div class="modal__title-wrap">
+          <span class="modal__icon modal__icon--warning" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </span>
+          <div>
+            <h2 id="forcePasswordTitle">Update Password</h2>
+            <p>You must set a permanent password (at least 8 characters) before continuing.</p>
+          </div>
+        </div>
+      </div>
+      <form id="forcePasswordForm" novalidate style="padding: 1.25rem;">
+        <div class="field" style="margin-bottom: 1rem;">
+          <label for="forceNewPassword">New Permanent Password</label>
+          <input type="password" id="forceNewPassword" minlength="8" required placeholder="Minimum 8 characters" autocomplete="new-password">
+        </div>
+        <div class="field" style="margin-bottom: 1rem;">
+          <label for="forceConfirmPassword">Confirm Permanent Password</label>
+          <input type="password" id="forceConfirmPassword" minlength="8" required placeholder="Repeat new password" autocomplete="new-password">
+        </div>
+        <p id="forcePasswordError" hidden style="color: #ef4444; font-size: 0.875rem; margin-bottom: 0.75rem;"></p>
+        <button class="btn btn--primary" type="submit" id="forcePasswordSubmit" style="width: 100%;">Save Password &amp; Continue</button>
+      </form>
     </div>
   </div>
 

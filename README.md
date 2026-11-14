@@ -17,7 +17,7 @@
 - **Row Level Security**: Every table (`profiles`, `expenses`, `expense_participants`, `settlements`, `settings`, `audit_log`) is locked down with PostgreSQL RLS policies and `SECURITY DEFINER is_admin()` checks.
 - **Edge Functions**: Administrative user provisioning (`create-friend`, `reset-password`, `delete-friend`) is executed securely using the Supabase service-role key server-side.
 - **Realtime Sync**: Listens to database events via Supabase Realtime so all active participants see expenses and settlements update live across all devices.
-- **Offline Resilience**: Automatically falls back to local storage cache when offline or when Supabase credentials are not configured.
+- **Offline Resilience**: Falls back to a per-user local cache when the network is unavailable, while showing an explicit "not configured" screen when Supabase credentials are missing.
 
 ### 👑 3. Dedicated Admin Panel
 - **Member Directory**: Promote/demote admins, deactivate or activate members, reset passwords, or remove members.
@@ -27,7 +27,7 @@
 
 ### 📱 4. Friend Portal & Progressive Web App (PWA)
 - **Personalized Friend Portal**: View individual balances, who you owe, who owes you, personal expense history, and one-tap settlement confirmations.
-- **Installable PWA**: Includes `manifest.json` and `sw.js` service worker for mobile installation and offline asset caching.
+- **Installable PWA**: Includes `public/manifest.json` and `public/sw.js` for mobile installation and offline asset caching.
 - **Theme Switcher**: Dark and light modes with seamless token switching and local storage persistence.
 - **Accessibility & Mobile-First**: WCAG compliant focus trap, accessible custom confirm dialogs replacing `window.confirm`, and verified 360px responsiveness.
 - **JSON & CSV Backups**: One-click JSON backup export/import (with schema validation) and CSV export for reporting.
@@ -107,7 +107,7 @@ The repository includes a preconfigured GitHub Actions workflow in `.github/work
 3. In **Repository Settings** -> **Pages**, set **Source** to **GitHub Actions**.
 4. The deployment pipeline will automatically build and publish the app!
 
-For full step-by-step instructions on setting up Supabase, database schema, and edge functions, see [SETUP.md](file:///d:/git%20repo/friends-expense-manager/SETUP.md).
+For full step-by-step instructions on setting up Supabase, database schema, and edge functions, see [SETUP.md](SETUP.md).
 
 ---
 

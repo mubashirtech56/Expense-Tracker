@@ -2,7 +2,6 @@
 // Supabase Client Initialization & Environment Configuration
 // ============================================================================
 
-// Safe access to Vite environment variables across all environments
 const getEnvVar = (key) => {
   try {
     if (typeof import.meta !== 'undefined' && import.meta?.env?.[key]) {
@@ -16,6 +15,10 @@ const getEnvVar = (key) => {
   } catch (_) {}
   return '';
 };
+
+export const isProd = Boolean(
+  typeof import.meta !== 'undefined' && import.meta?.env?.PROD
+);
 
 const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
 const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
@@ -45,16 +48,8 @@ if (isSupabaseConfigured) {
       },
     });
   } catch (err) {
-    console.warn('Failed to load @supabase/supabase-js client library:', err);
+    console.error('Failed to initialize @supabase/supabase-js client:', err);
   }
 }
 
 export const supabase = client;
-
-if (!isSupabaseConfigured) {
-  console.info(
-    '%c[Friends Expense Manager]%c Running in offline-first / local fallback mode. Admin login: admin / admin123',
-    'color: #3b82f6; font-weight: bold',
-    'color: inherit'
-  );
-}

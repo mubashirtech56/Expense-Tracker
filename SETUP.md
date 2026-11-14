@@ -27,6 +27,11 @@ This guide walks you through connecting your **Friends Expense Manager** app to 
    - `settings`
    - `audit_log`
 
+> [!IMPORTANT]
+> `schema.sql` always creates the latest schema from scratch. If your database already
+> exists, apply the incremental files in `supabase/migrations/` in order instead:
+> `002_security_hardening.sql`, then `003_validation_hardening.sql`.
+
 ---
 
 ## 3. Configure Supabase Authentication
@@ -34,7 +39,7 @@ This guide walks you through connecting your **Friends Expense Manager** app to 
 1. Navigate to **Authentication** -> **Providers** -> **Email**.
 2. Ensure **Enable Email provider** is turned **ON**.
 3. Under **Email Auth**, disable **Confirm email** (since Login IDs are internally mapped to `<loginId>@friends.local`).
-4. Set Minimum password length to `6`.
+4. Set Minimum password length to `8`.
 5. Click **Save**.
 
 ---
@@ -60,12 +65,13 @@ npx supabase functions deploy create-friend --no-verify-jwt
 npx supabase functions deploy reset-password --no-verify-jwt
 npx supabase functions deploy delete-friend --no-verify-jwt
 
-# 4. Set secrets for edge functions (if not automatically inherited)
-npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
+# 4. Set a custom secret name without the reserved SUPABASE_ prefix
+# Supabase reserves the SUPABASE_ prefix for built-in environment variables.
+npx supabase secrets set SERVICE_ROLE_KEY=<your-service-role-key>
 ```
 
 > [!NOTE]
-> Edge functions use the server-side `SUPABASE_SERVICE_ROLE_KEY` to administer users without exposing the service key to client browsers.
+> Edge functions use the server-side service role key to administer users without exposing the secret to client browsers. Use a custom variable name such as `SERVICE_ROLE_KEY` instead of `SUPABASE_SERVICE_ROLE_KEY` because the `SUPABASE_` prefix is reserved by Supabase.
 
 ---
 

@@ -3,7 +3,7 @@
    Backed by Supabase with offline resilience, full Auth & Admin Panel.
    ========================================================================== */
 
-import { supabase, isSupabaseConfigured } from './supabase.js';
+import { supabase, isSupabaseConfigured, isProd } from './supabase.js';
 import { auth, slugifyLoginId } from './auth.js';
 import { api } from './api.js';
 
@@ -127,12 +127,14 @@ let editingExpenseId = null;
 let activeLedgerFriendId = null;
 let lastFocusedElement = null;
 const expenseFilters = { search: "", category: "all" };
+const NOTIFICATIONS_READ_KEY = "fem_notifications_read_at";
 
 /* ------------------------------------------------------------------------
    DOM Elements
    ---------------------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", async () => {
   const appShell = document.getElementById("appShell");
+  const unconfiguredScreen = document.getElementById("unconfiguredScreen");
   const loginScreen = document.getElementById("loginScreen");
   const loginForm = document.getElementById("loginForm");
   const loginIdInput = document.getElementById("loginId");
@@ -226,13 +228,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   const exportCsvBtn = document.getElementById("exportCsvBtn");
   const importDataBtn = document.getElementById("importDataBtn");
   const importDataInput = document.getElementById("importDataInput");
+  const portalExportCsvBtn = document.getElementById("portalExportCsvBtn");
 
   // Admin view elements
   const adminMembersList = document.getElementById("adminMembersList");
+  const adminMemberSearch = document.getElementById("adminMemberSearch");
   const adminAddMemberBtn = document.getElementById("adminAddMemberBtn");
   const adminGroupForm = document.getElementById("adminGroupForm");
   const adminGroupName = document.getElementById("adminGroupName");
   const adminGroupBudget = document.getElementById("adminGroupBudget");
+  const adminAllowFriendsAddExpenses = document.getElementById("adminAllowFriendsAddExpenses");
   const adminAuditList = document.getElementById("adminAuditList");
   const refreshAuditBtn = document.getElementById("refreshAuditBtn");
   const adminResetDataBtn = document.getElementById("adminResetDataBtn");
@@ -260,6 +265,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const friendModal = document.getElementById("friendModal");
   const friendForm = document.getElementById("friendForm");
   const friendName = document.getElementById("friendName");
+  const friendLoginId = document.getElementById("friendLoginId");
+  const friendRole = document.getElementById("friendRole");
 
   const friendLedgerModal = document.getElementById("friendLedgerModal");
   const friendLedgerAvatar = document.getElementById("friendLedgerAvatar");
@@ -273,17 +280,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   const portalAccountId = document.getElementById("portalAccountId");
   const portalPasswordHint = document.getElementById("portalPasswordHint");
   const passwordForms = Array.from(document.querySelectorAll("[data-password-form]"));
+
+  // Security modals & banners
+  const tempPasswordModal = document.getElementById("tempPasswordModal");
+  const tempPasswordDisplay = document.getElementById("tempPasswordDisplay");
+  const copyTempPasswordBtn = document.getElementById("copyTempPasswordBtn");
+  const forcePasswordModal = document.getElementById("forcePasswordModal");
+  const forcePasswordForm = document.getElementById("forcePasswordForm");
+  const forceNewPassword = document.getElementById("forceNewPassword");
+  const forceConfirmPassword = document.getElementById("forceConfirmPassword");
+  const forcePasswordError = document.getElementById("forcePasswordError");
+  const offlineBanner = document.getElementById("offlineBanner");
+  const offlineRetryBtn = document.getElementById("offlineRetryBtn");
   const toastContainer = document.getElementById("toastContainer");
 
   // Custom Accessible Confirm Modal
   const confirmModal = document.getElementById("confirmModal");
   const confirmModalTitle = document.getElementById("confirmModalTitle");
   const confirmModalMessage = document.getElementById("confirmModalMessage");
-  const confirmModalTypedWrapper = document.getElementById("confirmModalTypedWrapper");
-  const confirmModalInput = document.getElementById("confirmModalInput");
-  const confirmModalInputLabel = document.getElementById("confirmModalInputLabel");
-  const confirmModalCancelBtn = document.getElementById("confirmModalCancelBtn");
-  const confirmModalOkBtn = document.getElementById("confirmModalOkBtn");
+  const confirmModalInputWrap = document.getElementById("confirmInputWrap");
+  const confirmModalPromptText = document.getElementById("confirmPromptText");
+  const confirmModalInput = document.getElementById("confirmInput");
+  const confirmModalCancelBtn = document.getElementById("confirmCancelBtn");
+  const confirmModalOkBtn = document.getElementById("confirmActionBtn");
 
   /* ------------------------------------------------------------------------
      Theme Management (Phase 3)
@@ -315,6 +334,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   initTheme();
 
+  if (!isSupabaseConfigured) {
+    if (unconfiguredScreen) unconfiguredScreen.hidden = false;
+    if (loginScreen) loginScreen.hidden = true;
+    if (appShell) appShell.hidden = true;
+  }
+
   /* ------------------------------------------------------------------------
      Password Visibility Toggle (Phase 3)
      ---------------------------------------------------------------------- */
@@ -340,22 +365,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     requireTypedText = null
   }) {
     return new Promise((resolve) => {
-      confirmDialogResolver = resolve;
-      if (!confirmModal) {
+      if (!confirmModal || !confirmModalOkBtn || !confirmModalCancelBtn) {
         resolve(window.confirm(message));
         return;
       }
+
+      // Resolve a previously pending dialog before opening a new one.
+      if (confirmDialogResolver) {
+        const previous = confirmDialogResolver;
+        confirmDialogResolver = null;
+        previous(false);
+      }
+
+      confirmDialogResolver = resolve;
 
       confirmModalTitle.textContent = title;
       confirmModalMessage.textContent = message;
       confirmModalOkBtn.textContent = confirmText;
       confirmModalCancelBtn.textContent = cancelText;
 
-      confirmModalOkBtn.className = isDanger ? "button button--danger" : "button button--primary";
+      confirmModalOkBtn.className = isDanger ? "btn btn--danger" : "btn btn--primary";
 
       if (requireTypedText) {
-        confirmModalTypedWrapper.classList.remove("hidden");
-        confirmModalInputLabel.textContent = `Type "${requireTypedText}" to confirm:`;
+        confirmModalInputWrap?.removeAttribute("hidden");
+        confirmModalPromptText.textContent = `Type "${requireTypedText}" to confirm:`;
         confirmModalInput.value = "";
         confirmModalOkBtn.disabled = true;
 
@@ -363,33 +396,39 @@ document.addEventListener("DOMContentLoaded", async () => {
           confirmModalOkBtn.disabled = confirmModalInput.value.trim() !== requireTypedText;
         };
       } else {
-        confirmModalTypedWrapper.classList.add("hidden");
+        confirmModalInputWrap?.setAttribute("hidden", "");
         confirmModalOkBtn.disabled = false;
         confirmModalInput.oninput = null;
       }
 
       openModal(confirmModal);
-      if (requireTypedText) {
-        setTimeout(() => confirmModalInput.focus(), 80);
-      } else {
-        setTimeout(() => confirmModalCancelBtn.focus(), 80);
-      }
+      window.setTimeout(() => {
+        if (requireTypedText) {
+          confirmModalInput.focus();
+        } else {
+          confirmModalCancelBtn.focus();
+        }
+      }, 80);
     });
   }
 
   function closeConfirmDialog(result) {
+    const resolve = confirmDialogResolver;
+    confirmDialogResolver = null;
     if (confirmModal) {
       closeModal(confirmModal);
     }
-    if (confirmDialogResolver) {
-      const resolve = confirmDialogResolver;
-      confirmDialogResolver = null;
-      resolve(result);
-    }
+    if (resolve) resolve(result);
   }
 
   confirmModalOkBtn?.addEventListener("click", () => closeConfirmDialog(true));
   confirmModalCancelBtn?.addEventListener("click", () => closeConfirmDialog(false));
+  confirmModalInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !confirmModalOkBtn?.disabled) {
+      event.preventDefault();
+      closeConfirmDialog(true);
+    }
+  });
 
   /* ------------------------------------------------------------------------
      Sanitization & String Formatting Helpers
@@ -462,9 +501,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     return `background: linear-gradient(135deg, ${palette[0]}, ${palette[1]}); color: #ffffff;`;
   }
 
-  function friendAvatar(friend, index) {
+  function friendAvatar(friend, index, extraClass = "") {
     const label = escapeHtml(friend?.name || "Friend");
-    return `<span class="avatar" style="${avatarStyle(index)}" aria-label="${label}">${getInitials(friend?.name)}</span>`;
+    const classes = `avatar${extraClass ? ` ${extraClass}` : ""}`;
+    return `<span class="${classes}" style="${avatarStyle(index)}" aria-label="${label}">${escapeHtml(getInitials(friend?.name))}</span>`;
   }
 
   function getFriend(id) {
@@ -546,6 +586,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
       state.settlements.forEach((s) => {
+        // Requirement 4: Only confirmed settlements count in balances
+        if (s.status !== "confirmed") return;
         if (s.fromId === friend.id) {
           settledSent = roundMoney(settledSent + Number(s.amount));
         }
@@ -608,6 +650,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     return transfers;
+  }
+
+  function findPendingSettlement(fromId, toId) {
+    return state.settlements.find(
+      (settlement) =>
+        settlement.status === "pending" &&
+        settlement.fromId === fromId &&
+        settlement.toId === toId
+    ) || null;
   }
 
   function getLedger() {
@@ -705,7 +756,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const share = participant ? roundMoney(participant.amount) : 0;
       const meta = CATEGORY_META[expense.category] || CATEGORY_META.lunch;
-      const payerName = isPayer ? "you" : getFriendName(expense.payerId);
+      const payerName = expense.payerId === auth.getCurrentUser()?.id
+        ? "you"
+        : getFriendName(expense.payerId);
       const count = (expense.participants || []).length;
       const shareNote = count > 1 ? ` · Split with ${count} friends` : " · Solo expense";
 
@@ -730,16 +783,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!isSender && !isReceiver) return;
 
       const otherId = isSender ? settlement.toId : settlement.fromId;
+      const statusLabel = settlement.status ? settlement.status.charAt(0).toUpperCase() + settlement.status.slice(1) : "Pending";
       activity.push({
         id: settlement.id,
         type: "settlement",
         date: settlement.date,
         createdAt: settlement.createdAt || `${settlement.date}T00:00:00Z`,
         title: isSender ? `Paid ${getFriendName(otherId)}` : `Received from ${getFriendName(otherId)}`,
-        detail: `${formatDate(settlement.date)} · Settlement`,
+        detail: `${formatDate(settlement.date)} · Settlement (${statusLabel})`,
         amount: roundMoney(settlement.amount),
         amountLabel: isSender ? "paid" : "received",
         amountClass: isSender ? "negative" : "positive",
+        status: settlement.status || "pending",
         icon: ARROW_ICON,
         color: isSender ? "#c2410c" : "#15803d"
       });
@@ -797,6 +852,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function renderAccessControl() {
     const admin = auth.isAdmin();
+    const canAddExpenses = admin || Boolean(state.allowFriendsToAddExpenses);
     document.body.dataset.role = admin ? "admin" : "friend";
 
     navLinks.forEach((link) => {
@@ -810,6 +866,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (portalNavLink) portalNavLink.hidden = admin;
     if (adminNavLink) adminNavLink.hidden = !admin;
+    if (addFriendBtn) addFriendBtn.hidden = !admin;
+    if (addExpenseBtn) addExpenseBtn.hidden = !canAddExpenses;
+    if (importDataBtn) importDataBtn.hidden = !admin;
+    if (resetDataBtn) resetDataBtn.hidden = !admin;
+
+    document.querySelectorAll('[data-action="add-expense"]').forEach((element) => {
+      element.hidden = !canAddExpenses;
+    });
   }
 
   function renderSidebar() {
@@ -882,9 +946,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             <button class="icon-btn icon-btn--sm" type="button" data-edit-expense="${escapeHtml(expense.id)}" aria-label="Edit ${escapeHtml(expense.title)}" title="Edit expense">
               ${EDIT_ICON}
             </button>
-            <button class="icon-btn icon-btn--sm icon-btn--danger" type="button" data-delete-expense="${escapeHtml(expense.id)}" aria-label="Delete ${escapeHtml(expense.title)}" title="Delete expense">
-              ${TRASH_ICON}
-            </button>
+            ${options.canDelete !== false ? `
+              <button class="icon-btn icon-btn--sm icon-btn--danger" type="button" data-delete-expense="${escapeHtml(expense.id)}" aria-label="Delete ${escapeHtml(expense.title)}" title="Delete expense">
+                ${TRASH_ICON}
+              </button>
+            ` : ""}
           </div>
         ` : ""}
       </article>
@@ -1106,6 +1172,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       const other = entry.friend;
       const otherName = escapeHtml(other.name);
       const isPaying = direction === "pay";
+      const fromId = isPaying ? friend.id : other.id;
+      const toId = isPaying ? other.id : friend.id;
+      const currentUserId = auth.getCurrentUser()?.id;
+      const isCurrentFriend = friend.id === currentUserId;
+      const canSettle = auth.isAdmin() || (isCurrentFriend && isPaying);
+      const pending = findPendingSettlement(fromId, toId);
 
       return `
         <article class="ledger-pair">
@@ -1117,18 +1189,32 @@ document.addEventListener("DOMContentLoaded", async () => {
             </div>
           </div>
           <strong class="amount amount--${isPaying ? "negative" : "positive"}">${formatMoney(entry.amount)}</strong>
-          <button class="btn btn--soft btn--sm" type="button"
-            data-settle-from="${isPaying ? escapeHtml(friend.id) : escapeHtml(other.id)}"
-            data-settle-to="${isPaying ? escapeHtml(other.id) : escapeHtml(friend.id)}"
-            data-settle-amount="${entry.amount}">
-            ${isPaying ? "Mark paid" : "Mark received"}
-          </button>
+          ${pending ? `
+            <span class="badge badge--warning" title="Waiting for the receiver to confirm">Pending</span>
+          ` : canSettle ? `
+            <button class="btn btn--soft btn--sm" type="button"
+              data-settle-from="${escapeHtml(fromId)}"
+              data-settle-to="${escapeHtml(toId)}"
+              data-settle-amount="${entry.amount}">
+              ${isPaying ? "Mark paid" : "Mark received"}
+            </button>
+          ` : `<span style="font-size:0.8rem;color:var(--muted);font-weight:500;">Awaiting transfer</span>`}
         </article>
       `;
     };
 
     const activityMarkup = activity.length
-      ? activity.map((entry) => `
+      ? activity.map((entry) => {
+        let badge = "";
+        if (entry.type === "settlement") {
+          const st = entry.status || "pending";
+          badge = st === "confirmed"
+            ? '<span class="badge badge--positive" style="font-size:0.75rem;">Confirmed</span>'
+            : st === "rejected"
+              ? '<span class="badge badge--negative" style="font-size:0.75rem;">Rejected</span>'
+              : '<span class="badge badge--warning" style="font-size:0.75rem;">Pending</span>';
+        }
+        return `
         <article class="ledger-activity-row">
           <span class="ledger-activity-row__icon" style="background:${entry.color}1f;color:${entry.color}" aria-hidden="true">${entry.icon}</span>
           <div class="ledger-activity-row__copy">
@@ -1137,10 +1223,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
           <div class="ledger-activity-row__amount">
             <strong class="amount amount--${entry.amountClass}">${formatMoney(entry.amount)}</strong>
-            <span>${escapeHtml(entry.amountLabel)}</span>
+            <span>${badge || escapeHtml(entry.amountLabel)}</span>
           </div>
         </article>
-      `).join("")
+      `;
+      }).join("")
       : `<p class="ledger-empty">No expenses or settlements involve ${name} yet.</p>`;
 
     const stats = getFriendStats().find((entry) => entry.friend.id === friend.id) || { paid: 0, share: 0 };
@@ -1206,8 +1293,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (portalAccountId) portalAccountId.textContent = user.loginId;
     if (portalPasswordHint) {
       portalPasswordHint.textContent = user.mustChangePassword
-        ? "Temporary password in use. Change it immediately to secure your portal."
-        : "Use at least 6 characters and keep it private.";
+        ? "Temporary password in use. Set a permanent password (min 8 characters) to secure your portal."
+        : "Use at least 8 characters and keep it private.";
     }
 
     if (!ledger) {
@@ -1220,7 +1307,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (portalSub) {
       portalSub.textContent = `${formatSignedMoney(net)} net · ${payTo.length} to pay · ${receiveFrom.length} to receive`;
     }
-    portalLedger.innerHTML = buildFriendLedgerMarkup(ledger);
+
+    // Pending settlements awaiting confirmation by this member (or admin)
+    const pendingToMe = state.settlements.filter(
+      (s) => s.status === "pending" && (s.toId === user.id || auth.isAdmin())
+    );
+
+    let pendingSectionMarkup = "";
+    if (pendingToMe.length > 0) {
+      pendingSectionMarkup = `
+        <section class="ledger-block" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+          <div class="ledger-section__head" style="margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+            <h3 style="color: #d97706; margin: 0; font-size: 1rem; font-weight: 700;">
+              Pending Settlements Awaiting Your Confirmation
+            </h3>
+            <span class="badge badge--warning">${pendingToMe.length} pending</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            ${pendingToMe.map((s) => {
+              const sender = getFriend(s.fromId);
+              const senderName = sender ? escapeHtml(sender.name) : "Someone";
+              return `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: var(--card); padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--line);">
+                  <div>
+                    <strong>${senderName}</strong> reported paying you <strong>${formatMoney(s.amount)}</strong>
+                    <div style="font-size: 0.8rem; color: var(--muted);">${formatDate(s.date)}</div>
+                  </div>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn--sm btn--primary" type="button" data-confirm-settlement="${escapeHtml(s.id)}">Confirm</button>
+                    <button class="btn btn--sm btn--soft btn--danger" type="button" data-reject-settlement="${escapeHtml(s.id)}">Reject</button>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    portalLedger.innerHTML = pendingSectionMarkup + buildFriendLedgerMarkup(ledger);
   }
 
   function renderFriendLedger(force = false) {
@@ -1283,7 +1408,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       expensesEmpty.hidden = filtered.length > 0;
     }
 
-    expensesList.innerHTML = filtered.map((expense) => expenseRowMarkup(expense, { manage: auth.isAdmin() })).join("");
+    const canManageExpense = (expense) => {
+      if (auth.isAdmin()) return true;
+      return Boolean(state.allowFriendsToAddExpenses) && expense.payerId === auth.getCurrentUser()?.id;
+    };
+
+    expensesList.innerHTML = filtered.map((expense) => expenseRowMarkup(expense, {
+      manage: canManageExpense(expense),
+      canDelete: auth.isAdmin()
+    })).join("");
   }
 
   function renderSettlements() {
@@ -1306,6 +1439,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           const to = getFriend(transfer.toId);
           if (!from || !to) return "";
 
+          const canSettle = auth.isAdmin() || transfer.fromId === auth.getCurrentUser()?.id;
+          const pending = findPendingSettlement(transfer.fromId, transfer.toId);
+
           return `
             <article class="settlement-row">
               <div class="settlement-row__people">
@@ -1319,9 +1455,13 @@ document.addEventListener("DOMContentLoaded", async () => {
               </div>
               <div class="settlement-row__amount">
                 <strong>${formatMoney(transfer.amount)}</strong>
-                <button class="btn btn--soft btn--sm" type="button" data-settle-from="${escapeHtml(transfer.fromId)}" data-settle-to="${escapeHtml(transfer.toId)}" data-settle-amount="${transfer.amount}">
-                  Mark paid
-                </button>
+                ${pending ? `
+                  <span class="badge badge--warning" title="Waiting for the receiver to confirm">Pending</span>
+                ` : canSettle ? `
+                  <button class="btn btn--soft btn--sm" type="button" data-settle-from="${escapeHtml(transfer.fromId)}" data-settle-to="${escapeHtml(transfer.toId)}" data-settle-amount="${transfer.amount}">
+                    Mark paid
+                  </button>
+                ` : `<span style="font-size:0.8rem;color:var(--muted);font-weight:500;">Suggested</span>`}
               </div>
             </article>
           `;
@@ -1344,6 +1484,15 @@ document.addEventListener("DOMContentLoaded", async () => {
           const to = getFriend(settlement.toId);
           if (!from || !to) return "";
 
+          const status = settlement.status || "pending";
+          const statusBadge = status === "confirmed"
+            ? '<span class="badge badge--positive">Confirmed</span>'
+            : status === "rejected"
+              ? '<span class="badge badge--negative">Rejected</span>'
+              : '<span class="badge badge--warning">Pending</span>';
+
+          const canConfirmOrReject = status === "pending" && (auth.isAdmin() || settlement.toId === auth.getCurrentUser()?.id);
+
           return `
             <article class="settlement-row settlement-row--history">
               <div class="settlement-row__people">
@@ -1355,8 +1504,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <strong>${escapeHtml(from.name)} paid ${escapeHtml(to.name)}</strong>
                 <span>${escapeHtml(formatDate(settlement.date))} · ${formatMoney(settlement.amount)}</span>
               </div>
-              <div class="settlement-row__amount">
-                <span class="badge badge--positive">Completed</span>
+              <div class="settlement-row__amount" style="display:flex;align-items:center;gap:0.5rem;">
+                ${statusBadge}
+                ${canConfirmOrReject ? `
+                  <button class="btn btn--sm btn--primary" type="button" data-confirm-settlement="${escapeHtml(settlement.id)}" title="Confirm settlement">Confirm</button>
+                  <button class="btn btn--sm btn--soft btn--danger" type="button" data-reject-settlement="${escapeHtml(settlement.id)}" title="Reject settlement">Reject</button>
+                ` : ""}
                 ${auth.isAdmin() ? `
                   <button class="icon-btn icon-btn--sm icon-btn--danger" type="button" data-delete-settlement="${escapeHtml(settlement.id)}" aria-label="Delete settlement" title="Delete settlement">
                     ${TRASH_ICON}
@@ -1404,11 +1557,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         const pct = total > 0 ? (cat.amount / total) * 100 : 0;
         return `
           <div class="bar-row">
-            <span class="bar-row__label">${escapeHtml(cat.label)}</span>
-            <div class="bar-track">
-              <div class="bar-fill" style="width: ${pct}%; background: ${cat.color}"></div>
-            </div>
-            <span class="bar-row__value">${formatMoney(cat.amount)}</span>
+            <span class="bar-dot" style="background: ${cat.color}"></span>
+            <span class="bar-label">${escapeHtml(cat.label)}</span>
+            <span class="bar-track">
+              <span class="bar-fill" style="width: ${pct}%; background: ${cat.color}"></span>
+            </span>
+            <span class="bar-value">${formatMoney(cat.amount)}</span>
           </div>
         `;
       }).join("");
@@ -1416,36 +1570,66 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (reportContributors) {
       const stats = getFriendStats().sort((a, b) => b.paid - a.paid);
-      reportContributors.innerHTML = stats.map((entry) => `
+      const maxPaid = Math.max(1, ...stats.map((entry) => entry.paid));
+
+      reportContributors.innerHTML = stats.length ? stats.map((entry, index) => `
         <div class="contributor-row">
+          <span class="contributor-rank">${index + 1}</span>
           ${friendAvatar(entry.friend, entry.index)}
-          <span class="contributor-name">${escapeHtml(entry.friend.name)}</span>
-          <strong class="contributor-paid">${formatMoney(entry.paid)}</strong>
+          <span class="contributor-copy">
+            <strong>${escapeHtml(entry.friend.name)}</strong>
+            <span class="contributor-track">
+              <span style="width: ${Math.min(100, (entry.paid / maxPaid) * 100)}%"></span>
+            </span>
+          </span>
+          <strong class="contributor-value">${formatMoney(entry.paid)}</strong>
         </div>
-      `).join("");
+      `).join("") : `<p class="ledger-empty">No contributors yet.</p>`;
     }
 
     if (reportMonths) {
       const months = {};
       state.expenses.forEach((expense) => {
         const key = String(expense.date).slice(0, 7);
-        months[key] = (months[key] || 0) + Number(expense.amount);
+        if (!months[key]) months[key] = { amount: 0, count: 0 };
+        months[key].amount += Number(expense.amount) || 0;
+        months[key].count += 1;
       });
 
       const keys = Object.keys(months).sort().reverse().slice(0, 6);
-      reportMonths.innerHTML = keys.length ? keys.map((key) => `
-        <div class="month-row">
-          <span>${key}</span>
-          <strong>${formatMoney(months[key])}</strong>
-        </div>
-      `).join("") : `<p class="ledger-empty">No monthly data available.</p>`;
+      const maxMonth = Math.max(1, ...keys.map((key) => months[key].amount));
+
+      reportMonths.innerHTML = keys.length ? keys.map((key) => {
+        const month = new Date(`${key}-01T00:00:00Z`).toLocaleDateString("en-IN", {
+          timeZone: "UTC",
+          month: "short",
+          year: "numeric"
+        });
+        return `
+          <div class="monthly-row">
+            <div class="monthly-row__copy">
+              <strong>${escapeHtml(month)}</strong>
+              <span>${months[key].count} ${months[key].count === 1 ? "expense" : "expenses"}</span>
+            </div>
+            <span class="monthly-track">
+              <span style="width: ${Math.min(100, (months[key].amount / maxMonth) * 100)}%"></span>
+            </span>
+            <strong class="monthly-value">${formatMoney(months[key].amount)}</strong>
+          </div>
+        `;
+      }).join("") : `<p class="ledger-empty">No monthly data available.</p>`;
     }
   }
 
   function renderSettingsForm() {
     const current = auth.getCurrentUser() || state.friends[0];
+    const isAdmin = auth.isAdmin();
     if (settingsName) settingsName.value = current?.name || "";
-    if (settingsBudget) settingsBudget.value = Number(state.budget) || 0;
+    if (settingsBudget) {
+      settingsBudget.value = Number(state.budget) || 0;
+      settingsBudget.disabled = !isAdmin;
+      settingsBudget.title = isAdmin ? "" : "Only an administrator can change the group budget.";
+    }
     if (settingsLoginId) settingsLoginId.textContent = current?.loginId || "—";
   }
 
@@ -1457,12 +1641,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (adminGroupName) adminGroupName.value = state.groupName || "Friends Expense Manager";
     if (adminGroupBudget) adminGroupBudget.value = Number(state.budget) || 0;
+    if (adminAllowFriendsAddExpenses) {
+      adminAllowFriendsAddExpenses.checked = Boolean(state.allowFriendsToAddExpenses);
+    }
 
     if (adminMembersList) {
-      adminMembersList.innerHTML = state.friends.map((friend, idx) => {
+      const search = (adminMemberSearch?.value || "").trim().toLowerCase();
+      const filteredFriends = state.friends.filter((f) => {
+        if (!search) return true;
+        return (f.name || "").toLowerCase().includes(search) || (f.loginId || "").toLowerCase().includes(search);
+      });
+
+      const activeAdminCount = state.friends.filter((f) => f.role === "admin" && f.isActive !== false).length;
+
+      adminMembersList.innerHTML = filteredFriends.length ? filteredFriends.map((friend, idx) => {
         const isCurrent = friend.id === state.currentUserId;
         const isAdmin = friend.role === "admin";
         const isActive = friend.isActive !== false;
+        const isLastActiveAdmin = isAdmin && isActive && activeAdminCount <= 1;
 
         return `
           <tr>
@@ -1472,6 +1668,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <div>
                   <strong>${escapeHtml(friend.name)}</strong>
                   ${isCurrent ? ` <span class="badge badge--neutral">You</span>` : ""}
+                  ${isLastActiveAdmin ? ` <span class="badge badge--warning" title="Primary Administrator">Last Admin</span>` : ""}
                 </div>
               </div>
             </td>
@@ -1488,10 +1685,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             <td>
               <div class="admin-actions">
                 ${!isCurrent ? `
-                  <button class="btn btn--ghost btn--sm" type="button" data-admin-role="${escapeHtml(friend.id)}" data-target-role="${isAdmin ? "friend" : "admin"}">
+                  <button class="btn btn--ghost btn--sm" type="button"
+                    data-admin-role="${escapeHtml(friend.id)}"
+                    data-target-role="${isAdmin ? "friend" : "admin"}"
+                    ${isLastActiveAdmin ? "disabled title='Cannot demote the last active admin'" : ""}>
                     ${isAdmin ? "Demote" : "Promote"}
                   </button>
-                  <button class="btn btn--ghost btn--sm" type="button" data-admin-toggle-active="${escapeHtml(friend.id)}" data-is-active="${isActive}">
+                  <button class="btn btn--ghost btn--sm" type="button"
+                    data-admin-toggle-active="${escapeHtml(friend.id)}"
+                    data-is-active="${isActive}"
+                    ${isLastActiveAdmin && isActive ? "disabled title='Cannot deactivate the last active admin'" : ""}>
                     ${isActive ? "Deactivate" : "Activate"}
                   </button>
                 ` : ""}
@@ -1499,7 +1702,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                   Reset Pwd
                 </button>
                 ${!isCurrent ? `
-                  <button class="icon-btn icon-btn--sm icon-btn--danger" type="button" data-admin-delete-friend="${escapeHtml(friend.id)}" title="Delete member">
+                  <button class="icon-btn icon-btn--sm icon-btn--danger" type="button"
+                    data-admin-delete-friend="${escapeHtml(friend.id)}"
+                    title="${isLastActiveAdmin ? "Cannot delete the last active admin" : "Delete member"}"
+                    ${isLastActiveAdmin ? "disabled" : ""}>
                     ${TRASH_ICON}
                   </button>
                 ` : ""}
@@ -1507,7 +1713,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             </td>
           </tr>
         `;
-      }).join("");
+      }).join("") : `<tr><td colspan="6" class="ledger-empty">No members found matching "${escapeHtml(search)}".</td></tr>`;
     }
 
     loadAuditLogs();
@@ -1524,13 +1730,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       adminAuditList.innerHTML = logs.slice(0, 30).map((log) => `
         <div class="audit-item">
-          <div class="audit-item__header">
+          <div class="audit-item__copy">
             <strong>${escapeHtml(log.action)}</strong>
-            <span>${timeAgo(log.created_at)}</span>
+            <p>Actor: <strong>${escapeHtml(log.actor_name || "System")}</strong> · ${escapeHtml(JSON.stringify(log.details || {}))}</p>
           </div>
-          <p class="audit-item__details">
-            Actor: <strong>${escapeHtml(log.actor_name || "System")}</strong> · ${escapeHtml(JSON.stringify(log.details || {}))}
-          </p>
+          <span class="audit-item__meta">${timeAgo(log.created_at)}</span>
         </div>
       `).join("");
     } catch (err) {
@@ -1546,6 +1750,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ------------------------------------------------------------------------
      Notification Drawer
      ---------------------------------------------------------------------- */
+  function getNotificationsReadAt() {
+    const fromState = state.settings?.notificationsReadAt;
+    if (fromState) return fromState;
+    try {
+      return localStorage.getItem(NOTIFICATIONS_READ_KEY) || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   function renderNotifications() {
     if (!notificationList || !notificationBtn) return;
 
@@ -1566,7 +1780,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }))
     ].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
 
-    const readAt = state.settings.notificationsReadAt;
+    const readAt = getNotificationsReadAt();
     const unread = events.filter((event) => !readAt || String(event.createdAt) > String(readAt)).length;
 
     notificationDot?.classList.toggle("is-visible", unread > 0);
@@ -1600,12 +1814,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!notificationMenu) return;
     notificationMenu.classList.remove("is-open");
     notificationMenu.setAttribute("aria-hidden", "true");
+    notificationBtn?.setAttribute("aria-expanded", "false");
   }
 
   function toggleNotifications() {
     if (!notificationMenu) return;
     const isOpen = notificationMenu.classList.toggle("is-open");
     notificationMenu.setAttribute("aria-hidden", isOpen ? "false" : "true");
+    notificationBtn?.setAttribute("aria-expanded", isOpen ? "true" : "false");
   }
 
   /* ------------------------------------------------------------------------
@@ -1672,15 +1888,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   function closeSidebar() {
     if (!sidebar) return;
     sidebar.classList.remove("is-open");
-    sidebarOverlay?.classList.remove("is-open");
+    sidebarOverlay?.classList.remove("is-visible");
     document.body.classList.remove("sidebar-open");
+    menuToggle?.setAttribute("aria-expanded", "false");
   }
 
   function openSidebar() {
     if (!sidebar) return;
     sidebar.classList.add("is-open");
-    sidebarOverlay?.classList.add("is-open");
+    sidebarOverlay?.classList.add("is-visible");
     document.body.classList.add("sidebar-open");
+    menuToggle?.setAttribute("aria-expanded", "true");
   }
 
   /* ------------------------------------------------------------------------
@@ -1688,12 +1906,14 @@ document.addEventListener("DOMContentLoaded", async () => {
      ---------------------------------------------------------------------- */
   function openModal(modal) {
     if (!modal) return;
-    lastFocusedElement = document.activeElement;
+    if (!document.querySelector(".modal.is-open")) {
+      lastFocusedElement = document.activeElement;
+      document.body.classList.add("modal-open");
+    }
     closeSidebar();
     closeNotifications();
     modal.classList.add("is-open");
     modal.setAttribute("aria-hidden", "false");
-    document.body.classList.add("modal-open");
 
     window.setTimeout(() => {
       const focusable = modal.querySelector("input:not([type='hidden']), select, button");
@@ -1703,13 +1923,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function closeModal(modal) {
     if (!modal) return;
+    if (modal.dataset.locked === "true") return;
+
+    if (modal === confirmModal && confirmDialogResolver) {
+      const resolve = confirmDialogResolver;
+      confirmDialogResolver = null;
+      resolve(false);
+    }
     if (modal === friendLedgerModal) activeLedgerFriendId = null;
+
     modal.classList.remove("is-open");
     modal.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("modal-open");
 
-    if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
-      lastFocusedElement.focus();
+    if (!document.querySelector(".modal.is-open")) {
+      document.body.classList.remove("modal-open");
+      if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
+        lastFocusedElement.focus();
+      }
+      lastFocusedElement = null;
     }
   }
 
@@ -1751,16 +1982,32 @@ document.addEventListener("DOMContentLoaded", async () => {
   function populatePayerOptions(selectedId) {
     if (!expensePayer) return;
     const friends = getAllActiveFriends();
+    const currentUser = auth.getCurrentUser();
+    const isFriendAdding = !auth.isAdmin() && state.allowFriendsToAddExpenses;
 
     if (!friends.length) {
       expensePayer.innerHTML = `<option value="">Add a member first</option>`;
+      expensePayer.disabled = true;
       return;
     }
 
-    expensePayer.innerHTML = friends.map((friend) => {
-      const isSelected = friend.id === selectedId;
-      return `<option value="${escapeHtml(friend.id)}" ${isSelected ? "selected" : ""}>${escapeHtml(friend.name)}</option>`;
+    const options = isFriendAdding
+      ? friends.filter((f) => f.id === currentUser?.id)
+      : friends;
+
+    if (!options.length) {
+      expensePayer.innerHTML = `<option value="">No eligible payer</option>`;
+      expensePayer.disabled = true;
+      return;
+    }
+
+    const safeSelected = selectedId ?? currentUser?.id ?? options[0]?.id ?? null;
+    expensePayer.innerHTML = options.map((friend) => {
+      const isSelected = friend.id === safeSelected;
+      return `<option value="${escapeHtml(friend.id)}" ${isSelected ? "selected" : ""}>${escapeHtml(friend.name)}${friend.id === currentUser?.id ? " (You)" : ""}</option>`;
     }).join("");
+
+    expensePayer.disabled = isFriendAdding;
   }
 
   function renderParticipantGrid(selectedShares) {
@@ -1778,18 +2025,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       const checked = shares.has(friend.id);
 
       return `
-        <div class="participant-row">
-          <label class="participant-row__name">
+        <div class="participant">
+          <label class="participant__check">
             <input class="js-participant-check" type="checkbox" value="${escapeHtml(friend.id)}" ${checked ? "checked" : ""}>
+            ${friendAvatar(friend, friendIndex(friend.id), "participant__avatar")}
             <span>${escapeHtml(friend.name)}</span>
           </label>
-          <div class="participant-row__input-wrap">
-            <span class="currency-prefix">Rs.</span>
-            <input class="form-input participant-input js-participant-amount" type="number" min="0" step="any" data-friend-id="${escapeHtml(friend.id)}" value="${share ? share.toFixed(2) : ""}" placeholder="0.00">
+          <div class="participant__amount">
+            <span>Rs.</span>
+            <input class="js-participant-amount" type="number" min="0" step="any" data-friend-id="${escapeHtml(friend.id)}" value="${share ? share.toFixed(2) : ""}" placeholder="0.00">
           </div>
         </div>
       `;
     }).join("");
+
+    if (selectAllParticipants) {
+      selectAllParticipants.checked = friends.length > 0 && friends.every((friend) => shares.has(friend.id));
+    }
 
     updateAllocation();
   }
@@ -1807,18 +2059,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     const ratio = total > 0 ? Math.min(100, (assigned / total) * 100) : 0;
     allocationBar.style.width = `${ratio}%`;
 
-    if (Math.abs(diff) < 0.005 && total > 0) {
-      allocationBar.style.background = "var(--green-500, #22c55e)";
-      allocationStatus.textContent = "Fully allocated";
-      allocationStatus.className = "allocation-status allocation-status--ok";
-    } else if (diff > 0) {
-      allocationBar.style.background = "var(--blue-500, #3b82f6)";
-      allocationStatus.textContent = `${formatMoney(diff)} remaining`;
-      allocationStatus.className = "allocation-status allocation-status--warning";
-    } else {
-      allocationBar.style.background = "var(--red-500, #ef4444)";
-      allocationStatus.textContent = `${formatMoney(Math.abs(diff))} over allocated`;
-      allocationStatus.className = "allocation-status allocation-status--error";
+    if (allocationStatus) {
+      if (Math.abs(diff) < 0.005 && total > 0) {
+        allocationBar.style.background = "var(--green-600)";
+        allocationStatus.textContent = "Fully allocated";
+        allocationStatus.className = "allocation__status is-valid";
+      } else if (diff > 0) {
+        allocationBar.style.background = "var(--brand-500)";
+        allocationStatus.textContent = `${formatMoney(diff)} remaining`;
+        allocationStatus.className = "allocation__status is-warning";
+      } else {
+        allocationBar.style.background = "#dc2626";
+        allocationStatus.textContent = `${formatMoney(Math.abs(diff))} over allocated`;
+        allocationStatus.className = "allocation__status is-over";
+      }
     }
   }
 
@@ -1849,10 +2103,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     editingExpenseId = expenseId;
     const expense = expenseId ? state.expenses.find((e) => e.id === expenseId) : null;
     const isEdit = Boolean(expense);
+    const currentUser = auth.getCurrentUser();
 
-    expenseModalTitle.textContent = isEdit ? "Edit Expense" : "Add Expense";
-    expenseModalSubtitle.textContent = isEdit ? "Update details for this shared bill" : "Record a shared meal, snack or bill";
-    expenseSubmitLabel.textContent = isEdit ? "Save Changes" : "Save Expense";
+    if (!auth.isAdmin() && !state.allowFriendsToAddExpenses) {
+      showToast("Only an administrator can add expenses right now.");
+      return;
+    }
+
+    if (isEdit && !auth.isAdmin()) {
+      if (!state.allowFriendsToAddExpenses || expense.payerId !== currentUser?.id) {
+        showToast("You can only edit expenses where you are the payer.");
+        return;
+      }
+    }
+
+    if (expenseModalTitle) expenseModalTitle.textContent = isEdit ? "Edit Expense" : "Add Expense";
+    if (expenseModalSubtitle) expenseModalSubtitle.textContent = isEdit ? "Update details for this shared bill" : "Record a shared meal, snack or bill";
+    if (expenseSubmitLabel) expenseSubmitLabel.textContent = isEdit ? "Save Changes" : "Save Expense";
 
     if (expense) {
       expenseTitle.value = expense.title;
@@ -1868,7 +2135,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       expenseCategory.value = "lunch";
       expenseDate.value = getTodayISO();
       const active = getAllActiveFriends();
-      populatePayerOptions(active[0]?.id);
+      const defaultPayerId = (!auth.isAdmin() && state.allowFriendsToAddExpenses) ? currentUser?.id : active[0]?.id;
+      populatePayerOptions(defaultPayerId);
       const defaultShares = new Map(active.map((f) => [f.id, 0]));
       renderParticipantGrid(defaultShares);
     }
@@ -1883,9 +2151,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const amount = roundMoney(Number(expenseAmount.value));
     const category = expenseCategory.value;
     const date = expenseDate.value || getTodayISO();
-    const payerId = expensePayer.value;
+    const currentUser = auth.getCurrentUser();
+    const payerId = (!auth.isAdmin() && state.allowFriendsToAddExpenses)
+      ? (currentUser?.id || expensePayer.value)
+      : expensePayer.value;
 
-    if (!title || amount <= 0 || !payerId) {
+    if (!title || !Number.isFinite(amount) || amount <= 0 || !payerId) {
       showToast("Please provide a title, valid amount, and payer.");
       return;
     }
@@ -1956,6 +2227,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    if (!auth.isAdmin() && fromId !== auth.getCurrentUser()?.id) {
+      showToast("You can only record payments that you have sent.");
+      return;
+    }
+
+    if (findPendingSettlement(fromId, toId)) {
+      showToast("A payment between these members is already awaiting confirmation.");
+      return;
+    }
+
     const fromName = getFriendName(fromId);
     const toName = getFriendName(toId);
 
@@ -1970,7 +2251,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       await api.createSettlement(fromId, toId, value, getTodayISO());
-      showToast(`Recorded: ${fromName} paid ${toName} ${formatMoney(value)}.`);
+      showToast(auth.isAdmin()
+        ? `Recorded: ${fromName} paid ${toName} ${formatMoney(value)}.`
+        : `Payment of ${formatMoney(value)} submitted as pending! Awaiting confirmation from ${toName}.`
+      );
       await loadAndRenderData();
     } catch (err) {
       showToast(err.message || "Failed to record settlement.");
@@ -1996,24 +2280,110 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  async function confirmSettlementAction(id) {
+    const settlement = state.settlements.find((entry) => entry.id === id);
+    if (!settlement) return;
+
+    const user = auth.getCurrentUser();
+    if (!auth.isAdmin() && settlement.toId !== user?.id) {
+      showToast("Only the receiver or an administrator can confirm this payment.");
+      return;
+    }
+    if (settlement.status !== "pending") {
+      showToast("This settlement is no longer pending.");
+      return;
+    }
+
+    const confirmed = await showConfirmDialog({
+      title: "Confirm Payment",
+      message: `Confirm that ${getFriendName(settlement.fromId)} paid you ${formatMoney(settlement.amount)}?`,
+      confirmText: "Confirm Received",
+      isDanger: false
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await api.confirmSettlement(id);
+      showToast("Settlement confirmed.");
+      await loadAndRenderData();
+    } catch (err) {
+      showToast(err.message || "Failed to confirm settlement.");
+    }
+  }
+
+  async function rejectSettlementAction(id) {
+    const settlement = state.settlements.find((entry) => entry.id === id);
+    if (!settlement) return;
+
+    const user = auth.getCurrentUser();
+    if (!auth.isAdmin() && settlement.toId !== user?.id) {
+      showToast("Only the receiver or an administrator can reject this payment.");
+      return;
+    }
+    if (settlement.status !== "pending") {
+      showToast("This settlement is no longer pending.");
+      return;
+    }
+
+    const confirmed = await showConfirmDialog({
+      title: "Reject Payment",
+      message: `Reject the ${formatMoney(settlement.amount)} payment reported by ${getFriendName(settlement.fromId)}?`,
+      confirmText: "Reject",
+      isDanger: true
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await api.rejectSettlement(id);
+      showToast("Settlement rejected.");
+      await loadAndRenderData();
+    } catch (err) {
+      showToast(err.message || "Failed to reject settlement.");
+    }
+  }
+
   /* ------------------------------------------------------------------------
      Member & Friend Actions
      ---------------------------------------------------------------------- */
+  function showTempPasswordModal(tempPassword, memberName) {
+    if (!tempPasswordModal) {
+      showToast(`Temporary password for ${memberName}: ${tempPassword}`);
+      return;
+    }
+    const sub = document.getElementById("tempPasswordSub");
+    if (sub) {
+      sub.textContent = `Temporary password generated for ${memberName}. Share this once; it will not be shown again.`;
+    }
+    if (tempPasswordDisplay) {
+      tempPasswordDisplay.textContent = tempPassword;
+    }
+    openModal(tempPasswordModal);
+  }
+
   async function submitFriend(event) {
     event.preventDefault();
     const name = friendName.value.trim();
+    const loginId = friendLoginId ? friendLoginId.value.trim() : "";
+    const role = friendRole ? friendRole.value : "friend";
+
     if (!name) {
-      showToast("Please enter a friend's name.");
+      showToast("Please enter a member's name.");
       return;
     }
 
     try {
-      const newFriend = await api.createFriend(name);
+      const newFriend = await api.createFriend(name, loginId, role);
       closeModal(friendModal);
-      showToast(`Added ${newFriend.name}! Login ID: ${newFriend.loginId}`);
+      if (newFriend.tempPassword) {
+        showTempPasswordModal(newFriend.tempPassword, newFriend.name);
+      } else {
+        showToast(`Added ${newFriend.name}! Login ID: ${newFriend.loginId}`);
+      }
       await loadAndRenderData();
     } catch (err) {
-      showToast(err.message || "Failed to add friend.");
+      showToast(err.message || "Failed to add member.");
     }
   }
 
@@ -2021,12 +2391,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const friend = getFriend(friendId);
     if (!friend) return;
 
+    const activeAdminCount = state.friends.filter((f) => f.role === "admin" && f.isActive !== false).length;
+    if (friend.role === "admin" && activeAdminCount <= 1) {
+      showToast("Cannot remove the last active administrator.");
+      return;
+    }
+    if (friend.id === auth.getCurrentUser()?.id) {
+      showToast("You cannot remove your own account.");
+      return;
+    }
+
     const hasExpenses = state.expenses.some(
       (e) => e.payerId === friendId || (e.participants || []).some((p) => p.friendId === friendId)
     );
 
     const confirmed = await showConfirmDialog({
-      title: "Remove Friend",
+      title: "Remove Member",
       message: hasExpenses
         ? `"${friend.name}" has shared expenses. Deactivating their account preserves historical records. Continue?`
         : `Remove "${friend.name}" from the group?`,
@@ -2037,11 +2417,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!confirmed) return;
 
     try {
-      await api.deleteFriend(friendId, !hasExpenses);
-      showToast(`${friend.name} has been removed.`);
+      const result = await api.deleteFriend(friendId, !hasExpenses);
+      showToast(result?.softDeleted ? result.message : `${friend.name} has been removed.`);
       await loadAndRenderData();
     } catch (err) {
-      showToast(err.message || "Failed to remove friend.");
+      showToast(err.message || "Failed to remove member.");
     }
   }
 
@@ -2051,23 +2431,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const confirmed = await showConfirmDialog({
       title: "Reset Password",
-      message: `Reset password for ${friend.name} back to default (123456)?`,
-      confirmText: "Reset to 123456",
+      message: `Generate a new secure temporary password for ${friend.name}?`,
+      confirmText: "Generate Temp Password",
       isDanger: false
     });
 
     if (!confirmed) return;
 
     try {
-      const tempPass = await api.resetFriendPassword(friendId, "123456");
-      await showConfirmDialog({
-        title: "Password Reset Successful",
-        message: `Password for ${friend.name} has been reset to: ${tempPass}\n\nPlease share this with them. They will be required to change it on their next login.`,
-        confirmText: "Copy & Done",
-        cancelText: "Close",
-        isDanger: false
-      });
-      navigator.clipboard?.writeText(tempPass).catch(() => {});
+      const tempPass = await api.resetFriendPassword(friendId);
+      showTempPasswordModal(tempPass, friend.name);
       await loadAndRenderData();
     } catch (err) {
       showToast(err.message || "Failed to reset password.");
@@ -2089,8 +2462,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const link = document.createElement("a");
     link.href = url;
     link.download = `friends-expense-backup-${getTodayISO()}.json`;
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
     showToast("JSON backup downloaded.");
   }
 
@@ -2111,14 +2486,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     const csv = [header.join(","), ...rows].join("\r\n");
+    downloadCsv(`friends-expenses-${getTodayISO()}.csv`, csv);
+    showToast("Expense CSV exported.");
+  }
+
+  function exportMyCsv() {
+    const user = auth.getCurrentUser();
+    if (!user) return;
+
+    const rows = getSortedExpenses()
+      .filter((expense) => {
+        return expense.payerId === user.id ||
+          (expense.participants || []).some((participant) => participant.friendId === user.id);
+      })
+      .map((expense) => {
+        const participant = (expense.participants || []).find((item) => item.friendId === user.id);
+        const myShare = expense.payerId === user.id ? roundMoney(expense.amount) : roundMoney(participant?.amount || 0);
+        return [
+          expense.date,
+          expense.title,
+          CATEGORY_META[expense.category]?.label || expense.category,
+          expense.amount,
+          getFriendName(expense.payerId),
+          myShare
+        ].map((val) => `"${String(val).replace(/"/g, '""')}"`).join(",");
+      });
+
+    const header = ["Date", "Title", "Category", "Total (Rs.)", "Paid By", "My Share (Rs.)"];
+    const csv = [header.join(","), ...rows].join("\r\n");
+    downloadCsv(`my-expenses-${getTodayISO()}.csv`, csv);
+    showToast("Your personal CSV exported.");
+  }
+
+  function downloadCsv(filename, csv) {
     const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `friends-expenses-${getTodayISO()}.csv`;
+    link.download = filename;
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
-    showToast("Expense CSV exported.");
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   async function handleImportJson(event) {
@@ -2131,37 +2540,148 @@ document.addEventListener("DOMContentLoaded", async () => {
         const raw = JSON.parse(e.target.result);
         const data = raw.data || raw;
 
-        if (!data || !Array.isArray(data.friends) || !Array.isArray(data.expenses)) {
-          showToast("Invalid backup file: missing friends or expenses array.");
+        if (!data || !Array.isArray(data.expenses)) {
+          showToast("Invalid backup file: missing expenses array.");
           return;
         }
 
         const confirmed = await showConfirmDialog({
           title: "Import Data",
-          message: `This will replace all current data with ${data.friends.length} members and ${data.expenses.length} expenses from the backup file. Overwrite?`,
+          message: `This will replace current expenses and settlements with ${data.expenses.length} expenses from the backup file in a single transaction. Overwrite?`,
           confirmText: "Import & Overwrite",
           isDanger: true
         });
 
         if (!confirmed) return;
 
-        state = {
-          version: 2,
-          friends: data.friends,
-          expenses: data.expenses,
-          settlements: Array.isArray(data.settlements) ? data.settlements : [],
-          currentUserId: auth.getCurrentUser()?.id || data.friends[0]?.id || "f-admin",
-          budget: Number(data.budget) || 0,
-          groupName: data.groupName || "Friends Expense Manager",
-          settings: { notificationsReadAt: null }
+        // Map non-UUID or legacy IDs to existing database UUID profiles
+        const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(str || ""));
+        const VALID_CATEGORIES = ["breakfast", "lunch", "dinner", "tea", "snacks"];
+        const VALID_STATUSES = ["pending", "confirmed", "rejected"];
+        const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+        const findMatchingProfile = (idOrName) => {
+          if (!idOrName) return null;
+          const needle = String(idOrName).toLowerCase();
+          return state.friends.find((f) =>
+            f.id === idOrName ||
+            String(f.loginId || "").toLowerCase() === needle ||
+            String(f.name || "").toLowerCase() === needle
+          );
         };
 
-        api.saveLocalCache(state);
-        invalidateCaches();
-        renderAll();
-        showToast("Backup imported successfully.");
+        const mappedExpenses = [];
+        for (const [index, exp] of data.expenses.entries()) {
+          if (!exp || typeof exp !== "object") {
+            showToast(`Cannot import: expense #${index + 1} is not a valid object.`);
+            return;
+          }
+
+          let payerId = exp.payerId;
+          if (!isUuid(payerId)) {
+            const matched = findMatchingProfile(payerId);
+            if (matched) payerId = matched.id;
+          }
+          if (!isUuid(payerId)) {
+            showToast(`Cannot import: Payer "${exp.payerId}" does not exist in member profiles.`);
+            return;
+          }
+
+          const amount = round2(exp.amount);
+          if (!Number.isFinite(amount) || amount <= 0) {
+            showToast(`Cannot import: expense #${index + 1} has an invalid amount.`);
+            return;
+          }
+
+          const title = String(exp.title || "Imported Expense").trim() || "Imported Expense";
+          if (title.length > 120) {
+            showToast(`Cannot import: expense #${index + 1} title is longer than 120 characters.`);
+            return;
+          }
+
+          const mappedParticipants = [];
+          let shareTotal = 0;
+          for (const p of (exp.participants || [])) {
+            let friendId = p?.friendId;
+            if (!isUuid(friendId)) {
+              const matched = findMatchingProfile(friendId);
+              if (matched) friendId = matched.id;
+            }
+            if (!isUuid(friendId)) continue;
+
+            const share = round2(p.amount);
+            if (!Number.isFinite(share) || share < 0) {
+              showToast(`Cannot import: expense #${index + 1} has an invalid participant share.`);
+              return;
+            }
+            mappedParticipants.push({ friendId, amount: share });
+            shareTotal += share;
+          }
+
+          if (mappedParticipants.length === 0) {
+            showToast(`Cannot import: expense #${index + 1} has no valid participants.`);
+            return;
+          }
+
+          if (Math.abs(round2(shareTotal) - amount) > 0.01) {
+            showToast(`Cannot import: expense #${index + 1} shares do not add up to the total amount.`);
+            return;
+          }
+
+          mappedExpenses.push({
+            title,
+            amount,
+            category: VALID_CATEGORIES.includes(exp.category) ? exp.category : "lunch",
+            date: exp.date || getTodayISO(),
+            payerId,
+            participants: mappedParticipants,
+            createdAt: exp.createdAt || null
+          });
+        }
+
+        const mappedSettlements = [];
+        for (const [index, set] of (data.settlements || []).entries()) {
+          if (!set || typeof set !== "object") continue;
+
+          let fromId = set.fromId;
+          let toId = set.toId;
+          if (!isUuid(fromId)) {
+            const matched = findMatchingProfile(fromId);
+            if (matched) fromId = matched.id;
+          }
+          if (!isUuid(toId)) {
+            const matched = findMatchingProfile(toId);
+            if (matched) toId = matched.id;
+          }
+          if (!isUuid(fromId) || !isUuid(toId) || fromId === toId) {
+            showToast(`Cannot import: settlement #${index + 1} has invalid payer/receiver.`);
+            return;
+          }
+
+          const amount = round2(set.amount);
+          if (!Number.isFinite(amount) || amount <= 0) {
+            showToast(`Cannot import: settlement #${index + 1} has an invalid amount.`);
+            return;
+          }
+
+          mappedSettlements.push({
+            fromId,
+            toId,
+            amount,
+            date: set.date || getTodayISO(),
+            status: VALID_STATUSES.includes(set.status) ? set.status : "confirmed",
+            createdAt: set.createdAt || null
+          });
+        }
+
+        const res = await api.importBackup({
+          expenses: mappedExpenses,
+          settlements: mappedSettlements
+        });
+
+        await loadAndRenderData();
+        showToast(`Imported ${res?.expenses_imported ?? mappedExpenses.length} expenses successfully!`);
       } catch (err) {
-        showToast("Failed to parse backup JSON file.");
+        showToast(err.message || "Failed to parse backup JSON file.");
       }
     };
     reader.readAsText(file);
@@ -2173,15 +2693,33 @@ document.addEventListener("DOMContentLoaded", async () => {
      ---------------------------------------------------------------------- */
   async function saveSettings(event) {
     event.preventDefault();
-    const budget = roundMoney(Number(settingsBudget.value) || 0);
+    const name = settingsName ? settingsName.value.trim() : "";
+    const budget = roundMoney(Number(settingsBudget?.value) || 0);
+    const current = auth.getCurrentUser();
+
+    if (settingsName && !name) {
+      showToast("Please enter your display name.");
+      settingsName.focus();
+      return;
+    }
 
     try {
-      await api.updateSettings({ budget });
-      state.budget = budget;
-      renderSidebar();
-      showToast("Budget saved.");
+      if (name && name !== current?.name) {
+        await api.updateProfileName(name);
+        auth.updateCurrentUserName(name);
+        const me = state.friends.find((friend) => friend.id === current?.id);
+        if (me) me.name = name;
+      }
+
+      if (auth.isAdmin() && budget !== (Number(state.budget) || 0)) {
+        await api.updateSettings({ budget });
+        state.budget = budget;
+      }
+
+      renderAll();
+      showToast("Settings saved.");
     } catch (err) {
-      showToast("Failed to update budget.");
+      showToast(err.message || "Failed to save settings.");
     }
   }
 
@@ -2189,14 +2727,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     event.preventDefault();
     const groupName = adminGroupName.value.trim() || "Friends Expense Manager";
     const budget = roundMoney(Number(adminGroupBudget.value) || 0);
+    const allowFriendsToAddExpenses = Boolean(adminAllowFriendsAddExpenses?.checked);
 
     try {
-      await api.updateSettings({ groupName, budget });
+      await api.updateSettings({ groupName, budget, allowFriendsToAddExpenses });
       state.groupName = groupName;
       state.budget = budget;
+      state.allowFriendsToAddExpenses = allowFriendsToAddExpenses;
       renderSidebar();
-      renderRoute(false, false);
-      showToast("Group identity and budget saved.");
+      renderAll();
+      showToast("Group identity and permissions saved.");
     } catch (err) {
       showToast("Failed to update group settings.");
     }
@@ -2209,23 +2749,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     const newPasswordInput = form.querySelector(".js-new-password");
     const confirmPasswordInput = form.querySelector(".js-confirm-password");
 
-    let currentPassword = currentPasswordInput?.value?.trim() || "";
+    const currentPassword = currentPasswordInput?.value?.trim() || "";
     const newPassword = newPasswordInput?.value || "";
     const confirmPassword = confirmPasswordInput?.value || "";
 
-    const currentUser = auth.getCurrentUser();
-    if (!currentPassword && currentUser?.mustChangePassword) {
-      currentPassword = "123456";
-    }
-
     if (!currentPassword) {
-      showToast("Please enter your current password (default: 123456).");
+      showToast("Please enter your current password.");
       currentPasswordInput?.focus();
       return;
     }
 
-    if (newPassword.length < 6) {
-      showToast("New password must be at least 6 characters.");
+    if (newPassword.length < 8) {
+      showToast("New password must be at least 8 characters.");
       newPasswordInput?.focus();
       return;
     }
@@ -2239,14 +2774,81 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       await auth.changePassword(newPassword, currentPassword);
       form.reset();
-      showToast("Password updated successfully! Please use your new password on next login.");
+      showToast("Password updated successfully!");
       await loadAndRenderData();
     } catch (err) {
       showToast(err.message || "Failed to update password.");
-      if (err.message && err.message.toLowerCase().includes("current")) {
-        currentPasswordInput?.focus();
-        currentPasswordInput?.select();
+    }
+  }
+
+  async function handleForcePasswordChange(event) {
+    event.preventDefault();
+    const newPassword = forceNewPassword?.value || "";
+    const confirmPassword = forceConfirmPassword?.value || "";
+
+    if (forcePasswordError) {
+      forcePasswordError.hidden = true;
+      forcePasswordError.textContent = "";
+    }
+
+    const showError = (text) => {
+      if (forcePasswordError) {
+        forcePasswordError.hidden = false;
+        forcePasswordError.textContent = text;
+      } else {
+        showToast(text);
       }
+    };
+
+    if (newPassword.length < 8) {
+      showError("Password must be at least 8 characters.");
+      forceNewPassword?.focus();
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      showError("Passwords do not match.");
+      forceConfirmPassword?.focus();
+      return;
+    }
+
+    try {
+      await auth.changePassword(newPassword);
+      forcePasswordForm?.reset();
+      if (forcePasswordModal) {
+        forcePasswordModal.dataset.locked = "false";
+        closeModal(forcePasswordModal);
+      }
+      showToast("Password updated. Welcome to the group!");
+      await loadAndRenderData();
+    } catch (err) {
+      showError(err.message || "Failed to update password.");
+    }
+  }
+
+  async function copyTempPassword() {
+    const value = tempPasswordDisplay?.textContent?.trim();
+    if (!value) return;
+
+    try {
+      await navigator.clipboard.writeText(value);
+      showToast("Temporary password copied.");
+      return;
+    } catch (_) {
+      // Clipboard API is unavailable on insecure origins; fall back to selection.
+    }
+
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(tempPasswordDisplay);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.execCommand("copy");
+      selection.removeAllRanges();
+      showToast("Temporary password copied.");
+    } catch (_) {
+      showToast("Press Ctrl+C to copy the selected password.");
     }
   }
 
@@ -2313,37 +2915,59 @@ document.addEventListener("DOMContentLoaded", async () => {
       state = fresh;
       invalidateCaches();
       renderAll();
+
+      if (offlineBanner) {
+        offlineBanner.hidden = !fresh.isOffline;
+      }
     } catch (err) {
       console.warn("Error loading state:", err);
+      if (offlineBanner) offlineBanner.hidden = false;
     }
   }
 
+  let unsubscribeRealtime = null;
+
   auth.onAuthStateChange(async (user) => {
+    if (!isSupabaseConfigured) {
+      appShell.hidden = true;
+      loginScreen.hidden = true;
+      if (unconfiguredScreen) unconfiguredScreen.hidden = false;
+      return;
+    }
+
+    if (unconfiguredScreen) unconfiguredScreen.hidden = true;
+
     if (user) {
       loginScreen.hidden = true;
       appShell.hidden = false;
       state.currentUserId = user.id;
 
+      if (!unsubscribeRealtime) {
+        unsubscribeRealtime = api.subscribeToChanges(() => {
+          if (auth.getCurrentUser()) loadAndRenderData();
+        });
+      }
+
       await loadAndRenderData();
       goToView(getDefaultView(), false);
 
-      if (user.mustChangePassword) {
-        showToast("Please update your temporary password in Settings or Portal.");
+      if (user.mustChangePassword && forcePasswordModal) {
+        forcePasswordModal.dataset.locked = "true";
+        openModal(forcePasswordModal);
       }
     } else {
+      if (unsubscribeRealtime) {
+        unsubscribeRealtime();
+        unsubscribeRealtime = null;
+      }
       appShell.hidden = true;
       loginScreen.hidden = false;
       if (loginIdInput) loginIdInput.value = "";
       if (loginPasswordInput) loginPasswordInput.value = "";
       if (loginHelp) {
-        loginHelp.innerHTML = "Default password for all accounts: <strong>123456</strong> (Admin: <strong>admin</strong>)";
+        loginHelp.innerHTML = "Sign in with the temporary password provided by your admin.";
       }
     }
-  });
-
-  // Supabase Realtime synchronization
-  api.subscribeToChanges(() => {
-    loadAndRenderData();
   });
 
   /* ------------------------------------------------------------------------
@@ -2353,7 +2977,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     const navTarget = event.target.closest("[data-nav]");
     if (navTarget) {
       event.preventDefault();
+      closeSidebar();
+      closeNotifications();
       goToView(navTarget.dataset.nav);
+      return;
+    }
+
+    if (event.target.closest('[data-action="add-expense"]')) {
+      openExpenseModal();
+      return;
+    }
+
+    if (event.target.closest("[data-close-confirm]")) {
+      closeConfirmDialog(false);
       return;
     }
 
@@ -2366,6 +3002,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     const deleteExpenseTarget = event.target.closest("[data-delete-expense]");
     if (deleteExpenseTarget) {
       deleteExpense(deleteExpenseTarget.dataset.deleteExpense);
+      return;
+    }
+
+    const confirmSettlementTarget = event.target.closest("[data-confirm-settlement]");
+    if (confirmSettlementTarget) {
+      confirmSettlementAction(confirmSettlementTarget.dataset.confirmSettlement);
+      return;
+    }
+
+    const rejectSettlementTarget = event.target.closest("[data-reject-settlement]");
+    if (rejectSettlementTarget) {
+      rejectSettlementAction(rejectSettlementTarget.dataset.rejectSettlement);
       return;
     }
 
@@ -2408,9 +3056,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (adminRoleTarget) {
       const friendId = adminRoleTarget.dataset.adminRole;
       const newRole = adminRoleTarget.dataset.targetRole;
-      await api.updateRole(friendId, newRole);
-      showToast(`Updated role to ${newRole}.`);
-      await loadAndRenderData();
+      try {
+        await api.updateRole(friendId, newRole);
+        showToast(`Updated role to ${newRole}.`);
+        await loadAndRenderData();
+      } catch (err) {
+        showToast(err.message || "Failed to update role.");
+      }
       return;
     }
 
@@ -2418,9 +3070,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (adminToggleActiveTarget) {
       const friendId = adminToggleActiveTarget.dataset.adminToggleActive;
       const isCurrentlyActive = adminToggleActiveTarget.dataset.isActive === "true";
-      await api.toggleFriendActive(friendId, !isCurrentlyActive);
-      showToast(isCurrentlyActive ? "Member deactivated." : "Member activated.");
-      await loadAndRenderData();
+      try {
+        await api.toggleFriendActive(friendId, !isCurrentlyActive);
+        showToast(isCurrentlyActive ? "Member deactivated." : "Member activated.");
+        await loadAndRenderData();
+      } catch (err) {
+        showToast(err.message || "Failed to update member status.");
+      }
       return;
     }
 
@@ -2464,7 +3120,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   markReadBtn?.addEventListener("click", () => {
-    state.settings.notificationsReadAt = new Date().toISOString();
+    const now = new Date().toISOString();
+    state.settings = state.settings || {};
+    state.settings.notificationsReadAt = now;
+    try {
+      localStorage.setItem(NOTIFICATIONS_READ_KEY, now);
+    } catch (_) {}
     renderNotifications();
     showToast("Notifications marked as read.");
   });
@@ -2486,6 +3147,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   settingsForm?.addEventListener("submit", saveSettings);
   adminGroupForm?.addEventListener("submit", saveAdminGroupSettings);
   passwordForms.forEach((form) => form.addEventListener("submit", handlePasswordChange));
+  forcePasswordForm?.addEventListener("submit", handleForcePasswordChange);
+
+  copyTempPasswordBtn?.addEventListener("click", copyTempPassword);
+  offlineRetryBtn?.addEventListener("click", async () => {
+    showToast("Retrying connection…");
+    await loadAndRenderData();
+    if (!api.isOffline) showToast("Connection restored.");
+  });
+  portalExportCsvBtn?.addEventListener("click", exportMyCsv);
+
+  let adminSearchTimer = null;
+  adminMemberSearch?.addEventListener("input", () => {
+    if (adminSearchTimer) window.clearTimeout(adminSearchTimer);
+    adminSearchTimer = window.setTimeout(() => {
+      renderAdminPanel();
+    }, 150);
+  });
 
   exportDataBtn?.addEventListener("click", exportJson);
   exportCsvBtn?.addEventListener("click", exportCsv);
@@ -2498,7 +3176,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   expenseAmount?.addEventListener("input", updateAllocation);
   participantGrid?.addEventListener("input", (e) => {
     if (e.target.classList.contains("js-participant-amount")) {
-      const checkbox = e.target.closest(".participant-row")?.querySelector(".js-participant-check");
+      const checkbox = e.target.closest(".participant")?.querySelector(".js-participant-check");
       if (checkbox) checkbox.checked = Number(e.target.value) > 0;
       updateAllocation();
     }
@@ -2506,18 +3184,27 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   participantGrid?.addEventListener("change", (e) => {
     if (e.target.classList.contains("js-participant-check")) {
-      const input = e.target.closest(".participant-row")?.querySelector(".js-participant-amount");
+      const input = e.target.closest(".participant")?.querySelector(".js-participant-amount");
       if (input && !e.target.checked) input.value = "";
       updateAllocation();
     }
   });
 
   splitEquallyBtn?.addEventListener("click", splitEqually);
-  selectAllParticipants?.addEventListener("click", () => {
-    document.querySelectorAll(".js-participant-check").forEach((box) => {
-      box.checked = true;
+  selectAllParticipants?.addEventListener("change", () => {
+    const boxes = Array.from(document.querySelectorAll(".js-participant-check"));
+    boxes.forEach((box) => {
+      box.checked = Boolean(selectAllParticipants.checked);
+      if (!box.checked) {
+        const input = box.closest(".participant")?.querySelector(".js-participant-amount");
+        if (input) input.value = "";
+      }
     });
-    splitEqually();
+    if (selectAllParticipants.checked) {
+      splitEqually();
+    } else {
+      updateAllocation();
+    }
   });
 
   expenseSearch?.addEventListener("input", () => {
@@ -2556,7 +3243,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ------------------------------------------------------------------------
      Service Worker Registration (PWA)
      ---------------------------------------------------------------------- */
-  if ("serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
+  if (isProd && "serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
 });

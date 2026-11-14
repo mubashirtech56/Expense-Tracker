@@ -4,263 +4,215 @@
 import { supabase, isSupabaseConfigured } from './supabase.js';
 import { auth, slugifyLoginId } from './auth.js';
 
-const CACHE_KEY = 'friends-expense-manager:data:v2';
+const CACHE_KEY = 'fem_cached_state';
 
 export const api = {
+  isOffline: false,
+
   // --------------------------------------------------------------------------
   // State Retrieval
   // --------------------------------------------------------------------------
   async fetchState() {
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const [
-          { data: profiles, error: profErr },
-          { data: expenses, error: expErr },
-          { data: participants, error: partErr },
-          { data: settlements, error: setErr },
-          { data: settings, error: cfgErr },
-        ] = await Promise.all([
-          supabase.from('profiles').select('*').order('created_at', { ascending: true }),
-          supabase.from('expenses').select('*').order('expense_date', { ascending: false }),
-          supabase.from('expense_participants').select('*'),
-          supabase.from('settlements').select('*').order('settlement_date', { ascending: false }),
-          supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
-        ]);
-
-        if (profErr) throw profErr;
-        if (expErr) throw expErr;
-        if (partErr) throw partErr;
-        if (setErr) throw setErr;
-
-        // Group participants by expense_id
-        const participantsByExpense = new Map();
-        (participants || []).forEach((p) => {
-          if (!participantsByExpense.has(p.expense_id)) {
-            participantsByExpense.set(p.expense_id, []);
-          }
-          participantsByExpense.get(p.expense_id).push({
-            friendId: p.friend_id,
-            amount: Number(p.share_amount),
-          });
-        });
-
-        const formattedExpenses = (expenses || []).map((e) => ({
-          id: e.id,
-          title: e.title,
-          amount: Number(e.amount),
-          category: e.category,
-          date: e.expense_date,
-          payerId: e.payer_id,
-          createdBy: e.created_by,
-          createdAt: e.created_at,
-          participants: participantsByExpense.get(e.id) || [],
-        }));
-
-        const formattedSettlements = (settlements || []).map((s) => ({
-          id: s.id,
-          fromId: s.from_id,
-          toId: s.to_id,
-          amount: Number(s.amount),
-          date: s.settlement_date,
-          createdBy: s.created_by,
-          createdAt: s.created_at,
-        }));
-
-        const formattedFriends = (profiles || []).map((p) => ({
-          id: p.id,
-          name: p.name,
-          loginId: p.login_id,
-          role: p.role,
-          mustChangePassword: p.must_change_password,
-          isActive: p.is_active,
-        }));
-
-        const state = {
-          version: 2,
-          friends: formattedFriends,
-          expenses: formattedExpenses,
-          settlements: formattedSettlements,
-          currentUserId: auth.getCurrentUser()?.id || (formattedFriends[0]?.id ?? 'f-admin'),
-          budget: Number(settings?.monthly_budget) || 0,
-          groupName: settings?.group_name || 'Friends Expense Manager',
-          settings: { notificationsReadAt: null },
-        };
-
-        // Cache locally for offline resilience
-        try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-        } catch (_) {}
-
-        return state;
-      } catch (err) {
-        console.warn('Supabase fetch failed, falling back to local cache:', err);
-        return this.loadLocalCache();
-      }
+    if (!isSupabaseConfigured || !supabase) {
+      this.isOffline = true;
+      return { ...this.loadLocalCache(), isOffline: true };
     }
 
-    return this.loadLocalCache();
+    try {
+      const [
+        { data: profiles, error: profErr },
+        { data: expenses, error: expErr },
+        { data: participants, error: partErr },
+        { data: settlements, error: setErr },
+        { data: settings, error: cfgErr },
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: true }),
+        supabase.from('expenses').select('*').order('expense_date', { ascending: false }),
+        supabase.from('expense_participants').select('*'),
+        supabase.from('settlements').select('*').order('settlement_date', { ascending: false }),
+        supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
+      ]);
+
+      if (profErr) throw profErr;
+      if (expErr) throw expErr;
+      if (partErr) throw partErr;
+      if (setErr) throw setErr;
+      if (cfgErr) throw cfgErr;
+
+      // Group participants by expense_id
+      const participantsByExpense = new Map();
+      (participants || []).forEach((p) => {
+        if (!participantsByExpense.has(p.expense_id)) {
+          participantsByExpense.set(p.expense_id, []);
+        }
+        participantsByExpense.get(p.expense_id).push({
+          friendId: p.friend_id,
+          amount: Number(p.share_amount),
+        });
+      });
+
+      const formattedExpenses = (expenses || []).map((e) => ({
+        id: e.id,
+        title: e.title,
+        amount: Number(e.amount),
+        category: e.category,
+        date: e.expense_date,
+        payerId: e.payer_id,
+        createdBy: e.created_by,
+        createdAt: e.created_at,
+        participants: participantsByExpense.get(e.id) || [],
+      }));
+
+      const formattedSettlements = (settlements || []).map((s) => ({
+        id: s.id,
+        fromId: s.from_id,
+        toId: s.to_id,
+        amount: Number(s.amount),
+        date: s.settlement_date,
+        status: s.status || 'pending',
+        confirmedBy: s.confirmed_by,
+        confirmedAt: s.confirmed_at,
+        createdBy: s.created_by,
+        createdAt: s.created_at,
+      }));
+
+      const formattedFriends = (profiles || []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        loginId: p.login_id,
+        role: p.role,
+        mustChangePassword: Boolean(p.must_change_password),
+        isActive: Boolean(p.is_active),
+      }));
+
+      const currentUser = auth.getCurrentUser();
+      const state = {
+        version: 2,
+        friends: formattedFriends,
+        expenses: formattedExpenses,
+        settlements: formattedSettlements,
+        currentUserId: currentUser?.id || (formattedFriends[0]?.id ?? null),
+        budget: Number(settings?.monthly_budget) || 0,
+        groupName: settings?.group_name || 'Friends Expense Manager',
+        allowFriendsToAddExpenses: Boolean(settings?.allow_friends_to_add_expenses),
+        settings: { notificationsReadAt: null },
+        cachedFor: currentUser?.id || null,
+        isOffline: false,
+      };
+
+      this.isOffline = false;
+
+      // Cache locally for read-only display
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(state));
+      } catch (_) {}
+
+      return state;
+    } catch (err) {
+      console.warn('Supabase fetch failed, showing read-only cached data:', err);
+      this.isOffline = true;
+      const cached = this.loadLocalCache();
+      return { ...cached, isOffline: true };
+    }
   },
 
   loadLocalCache() {
+    const currentUserId = auth.getCurrentUser()?.id || null;
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.friends)) {
+        // Only reuse cache written for the current user; otherwise a previous
+        // user's data could leak into another session on the same browser.
+        const ownerMatches =
+          (parsed?.cachedFor || null) === currentUserId || (!parsed?.cachedFor && !currentUserId);
+        if (parsed && Array.isArray(parsed.friends) && ownerMatches) {
           return parsed;
         }
       }
     } catch (_) {}
 
-    // Initial default state
-    const defaultState = {
+    return {
       version: 2,
-      friends: [
-        {
-          id: 'f-admin',
-          name: 'Admin',
-          loginId: 'admin',
-          role: 'admin',
-          mustChangePassword: false,
-          isActive: true,
-        },
-      ],
+      friends: [],
       expenses: [],
       settlements: [],
-      currentUserId: 'f-admin',
+      currentUserId: currentUserId,
       budget: 0,
       groupName: 'Friends Expense Manager',
+      allowFriendsToAddExpenses: false,
       settings: { notificationsReadAt: null },
+      cachedFor: currentUserId,
+      isOffline: true,
     };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(defaultState));
-    return defaultState;
-  },
-
-  saveLocalCache(state) {
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(state));
-    } catch (_) {}
   },
 
   // --------------------------------------------------------------------------
-  // Expense Operations
+  // Expense Operations (RPC based transactional writes)
   // --------------------------------------------------------------------------
   async createExpense(expenseData) {
-    const user = auth.getCurrentUser();
-    if (isSupabaseConfigured && supabase) {
-      const { data: expense, error: expErr } = await supabase
-        .from('expenses')
-        .insert({
-          title: expenseData.title,
-          amount: expenseData.amount,
-          category: expenseData.category,
-          expense_date: expenseData.date,
-          payer_id: expenseData.payerId,
-          created_by: user?.id,
-        })
-        .select()
-        .single();
-
-      if (expErr) throw expErr;
-
-      const participantRows = expenseData.participants.map((p) => ({
-        expense_id: expense.id,
-        friend_id: p.friendId,
-        share_amount: p.amount,
-      }));
-
-      const { error: partErr } = await supabase
-        .from('expense_participants')
-        .insert(participantRows);
-
-      if (partErr) throw partErr;
-
-      // Audit Log
-      await this.logAudit('CREATE_EXPENSE', {
-        expense_id: expense.id,
-        title: expense.title,
-        amount: expense.amount,
-      });
-
-      return {
-        ...expenseData,
-        id: expense.id,
-        createdAt: expense.created_at,
-      };
+    if (this.isOffline) {
+      throw new Error('Cannot add expenses while offline. Please reconnect and retry.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
     }
 
-    // Local implementation
-    const state = this.loadLocalCache();
-    const newExpense = {
-      id: `e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    const { data, error } = await supabase.rpc('create_expense', {
+      p_title: String(expenseData.title || '').trim(),
+      p_amount: expenseData.amount,
+      p_category: expenseData.category,
+      p_expense_date: expenseData.date,
+      p_payer_id: expenseData.payerId,
+      p_participants: expenseData.participants,
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to create expense');
+    }
+
+    return {
       ...expenseData,
-      createdBy: user?.id,
-      createdAt: new Date().toISOString(),
+      id: data?.id,
+      createdAt: data?.createdAt || new Date().toISOString(),
     };
-    state.expenses.unshift(newExpense);
-    this.saveLocalCache(state);
-    return newExpense;
   },
 
   async updateExpense(id, expenseData) {
-    if (isSupabaseConfigured && supabase) {
-      const { error: expErr } = await supabase
-        .from('expenses')
-        .update({
-          title: expenseData.title,
-          amount: expenseData.amount,
-          category: expenseData.category,
-          expense_date: expenseData.date,
-          payer_id: expenseData.payerId,
-        })
-        .eq('id', id);
-
-      if (expErr) throw expErr;
-
-      // Delete old participants and insert new
-      await supabase.from('expense_participants').delete().eq('expense_id', id);
-
-      const participantRows = expenseData.participants.map((p) => ({
-        expense_id: id,
-        friend_id: p.friendId,
-        share_amount: p.amount,
-      }));
-
-      const { error: partErr } = await supabase
-        .from('expense_participants')
-        .insert(participantRows);
-
-      if (partErr) throw partErr;
-
-      await this.logAudit('UPDATE_EXPENSE', {
-        expense_id: id,
-        title: expenseData.title,
-        amount: expenseData.amount,
-      });
-
-      return { ...expenseData, id };
+    if (this.isOffline) {
+      throw new Error('Cannot update expenses while offline. Please reconnect and retry.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
     }
 
-    const state = this.loadLocalCache();
-    const index = state.expenses.findIndex((e) => e.id === id);
-    if (index !== -1) {
-      state.expenses[index] = { ...state.expenses[index], ...expenseData };
-      this.saveLocalCache(state);
+    const { data, error } = await supabase.rpc('update_expense', {
+      p_expense_id: id,
+      p_title: String(expenseData.title || '').trim(),
+      p_amount: expenseData.amount,
+      p_category: expenseData.category,
+      p_expense_date: expenseData.date,
+      p_payer_id: expenseData.payerId,
+      p_participants: expenseData.participants,
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to update expense');
     }
+
     return { ...expenseData, id };
   },
 
   async deleteExpense(id) {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('expenses').delete().eq('id', id);
-      if (error) throw error;
-      await this.logAudit('DELETE_EXPENSE', { expense_id: id });
-      return true;
+    if (this.isOffline) {
+      throw new Error('Cannot delete expenses while offline. Please reconnect and retry.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
     }
 
-    const state = this.loadLocalCache();
-    state.expenses = state.expenses.filter((e) => e.id !== id);
-    this.saveLocalCache(state);
+    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    if (error) throw new Error(error.message || 'Failed to delete expense');
     return true;
   },
 
@@ -268,182 +220,235 @@ export const api = {
   // Settlement Operations
   // --------------------------------------------------------------------------
   async createSettlement(fromId, toId, amount, date) {
+    if (this.isOffline) {
+      throw new Error('Cannot record settlements while offline. Please reconnect and retry.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
+    }
+
     const user = auth.getCurrentUser();
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
-        .from('settlements')
-        .insert({
-          from_id: fromId,
-          to_id: toId,
-          amount,
-          settlement_date: date || new Date().toISOString().slice(0, 10),
-          created_by: user?.id,
-        })
-        .select()
-        .single();
+    const isAdmin = auth.isAdmin();
 
-      if (error) throw error;
+    // Friends insert 'pending'; admins insert 'confirmed'
+    const status = isAdmin ? 'confirmed' : 'pending';
+    const confirmedBy = isAdmin ? user?.id : null;
+    const confirmedAt = isAdmin ? new Date().toISOString() : null;
 
-      await this.logAudit('RECORD_SETTLEMENT', {
-        settlement_id: data.id,
+    const { data, error } = await supabase
+      .from('settlements')
+      .insert({
         from_id: fromId,
         to_id: toId,
         amount,
-      });
+        settlement_date: date || new Date().toISOString().slice(0, 10),
+        status,
+        confirmed_by: confirmedBy,
+        confirmed_at: confirmedAt,
+        created_by: user?.id,
+      })
+      .select()
+      .single();
 
-      return {
-        id: data.id,
-        fromId,
-        toId,
-        amount,
-        date: data.settlement_date,
-        createdAt: data.created_at,
-      };
-    }
+    if (error) throw new Error(error.message || 'Failed to record settlement');
 
-    const state = this.loadLocalCache();
-    const newSettlement = {
-      id: `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    return {
+      id: data.id,
       fromId,
       toId,
       amount,
-      date: date || new Date().toISOString().slice(0, 10),
-      createdAt: new Date().toISOString(),
-      createdBy: user?.id,
+      date: data.settlement_date,
+      status: data.status,
+      confirmedBy: data.confirmed_by,
+      confirmedAt: data.confirmed_at,
+      createdAt: data.created_at,
     };
-    state.settlements.unshift(newSettlement);
-    this.saveLocalCache(state);
-    return newSettlement;
+  },
+
+  async confirmSettlement(id) {
+    if (this.isOffline) {
+      throw new Error('Cannot confirm settlements while offline. Please reconnect.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
+    }
+
+    const user = auth.getCurrentUser();
+    const { error } = await supabase
+      .from('settlements')
+      .update({
+        status: 'confirmed',
+        confirmed_by: user?.id,
+        confirmed_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) throw new Error(error.message || 'Failed to confirm settlement');
+    return true;
+  },
+
+  async rejectSettlement(id) {
+    if (this.isOffline) {
+      throw new Error('Cannot reject settlements while offline. Please reconnect.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
+    }
+
+    const user = auth.getCurrentUser();
+    const { error } = await supabase
+      .from('settlements')
+      .update({
+        status: 'rejected',
+        confirmed_by: user?.id,
+        confirmed_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) throw new Error(error.message || 'Failed to reject settlement');
+    return true;
   },
 
   async deleteSettlement(id) {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('settlements').delete().eq('id', id);
-      if (error) throw error;
-      await this.logAudit('DELETE_SETTLEMENT', { settlement_id: id });
-      return true;
+    if (this.isOffline) {
+      throw new Error('Cannot delete settlements while offline. Please reconnect.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
     }
 
-    const state = this.loadLocalCache();
-    state.settlements = state.settlements.filter((s) => s.id !== id);
-    this.saveLocalCache(state);
+    const { error } = await supabase.from('settlements').delete().eq('id', id);
+    if (error) throw new Error(error.message || 'Failed to delete settlement');
     return true;
   },
 
   // --------------------------------------------------------------------------
   // Friend & Member Management
   // --------------------------------------------------------------------------
-  async createFriend(name, loginId, role = 'friend', initialPassword = '') {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.functions.invoke('create-friend', {
-        body: { name, loginId, role, initialPassword },
-      });
-
-      if (error) throw new Error(error.message || 'Failed to create friend via server');
-      if (data?.error) throw new Error(data.error);
-
-      return data.user;
+  async createFriend(name, loginId, role = 'friend') {
+    if (this.isOffline) {
+      throw new Error('Cannot add members while offline.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
     }
 
-    // Local Fallback
-    const state = this.loadLocalCache();
-    const cleanLogin = slugifyLoginId(loginId || name);
-    const newFriend = {
-      id: `f-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-      name: name.trim(),
-      loginId: cleanLogin,
-      role,
-      mustChangePassword: true,
-      isActive: true,
-      tempPassword: initialPassword || '123456',
-    };
-    state.friends.push(newFriend);
-    this.saveLocalCache(state);
-    return newFriend;
+    const cleanName = String(name ?? '').trim();
+    if (!cleanName) {
+      throw new Error('Member name is required.');
+    }
+
+    const cleanLogin = slugifyLoginId(loginId || cleanName);
+    const { data, error } = await supabase.functions.invoke('create-friend', {
+      body: { name: cleanName, loginId: cleanLogin, role },
+    });
+
+    if (error) throw new Error(error.message || 'Failed to create member');
+    if (data?.error) throw new Error(data.error);
+
+    return data.user;
   },
 
   async resetFriendPassword(friendId, customPassword = '') {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.functions.invoke('reset-password', {
-        body: { userId: friendId, customPassword },
-      });
-
-      if (error) throw new Error(error.message || 'Failed to reset password');
-      if (data?.error) throw new Error(data.error);
-
-      return data.tempPassword;
+    if (this.isOffline) {
+      throw new Error('Cannot reset password while offline.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
     }
 
-    const state = this.loadLocalCache();
-    const friend = state.friends.find((f) => f.id === friendId);
-    if (friend) {
-      const temp = customPassword || '123456';
-      friend.mustChangePassword = true;
-      friend.tempPassword = temp;
-      friend.password = null;
-      friend.passwordHash = null;
-      this.saveLocalCache(state);
-      return temp;
+    if (!friendId || typeof friendId !== 'string') {
+      throw new Error('A valid member ID is required.');
     }
-    return '123456';
+
+    const { data, error } = await supabase.functions.invoke('reset-password', {
+      body: { userId: friendId, customPassword },
+    });
+
+    if (error) throw new Error(error.message || 'Failed to reset password');
+    if (data?.error) throw new Error(data.error);
+
+    return data.tempPassword;
   },
 
   async toggleFriendActive(friendId, isActive) {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_active: isActive })
-        .eq('id', friendId);
-
-      if (error) throw error;
-      await this.logAudit(isActive ? 'ACTIVATE_FRIEND' : 'DEACTIVATE_FRIEND', { friendId });
-      return true;
+    if (this.isOffline) {
+      throw new Error('Cannot update members while offline.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
     }
 
-    const state = this.loadLocalCache();
-    const friend = state.friends.find((f) => f.id === friendId);
-    if (friend) {
-      friend.isActive = isActive;
-      this.saveLocalCache(state);
-    }
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_active: isActive })
+      .eq('id', friendId);
+
+    if (error) throw new Error(error.message || 'Failed to toggle member active status');
     return true;
   },
 
   async deleteFriend(friendId, hardDelete = false) {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.functions.invoke('delete-friend', {
-        body: { userId: friendId, hardDelete },
-      });
-
-      if (error) throw new Error(error.message || 'Failed to delete friend');
-      if (data?.error) throw new Error(data.error);
-      return true;
+    if (this.isOffline) {
+      throw new Error('Cannot remove members while offline.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
     }
 
-    const state = this.loadLocalCache();
-    state.friends = state.friends.filter((f) => f.id !== friendId);
-    this.saveLocalCache(state);
-    return true;
+    const { data, error } = await supabase.functions.invoke('delete-friend', {
+      body: { userId: friendId, hardDelete },
+    });
+
+    if (error) throw new Error(error.message || 'Failed to remove member');
+    if (data?.error) throw new Error(data.error);
+    return data || { success: true };
   },
 
   async updateRole(friendId, newRole) {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', friendId);
-
-      if (error) throw error;
-      await this.logAudit('CHANGE_ROLE', { target_id: friendId, role: newRole });
-      return true;
+    if (this.isOffline) {
+      throw new Error('Cannot change roles while offline.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
     }
 
-    const state = this.loadLocalCache();
-    const friend = state.friends.find((f) => f.id === friendId);
-    if (friend) {
-      friend.role = newRole;
-      this.saveLocalCache(state);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', friendId);
+
+    if (error) throw new Error(error.message || 'Failed to update member role');
+    return true;
+  },
+
+  async updateProfileName(name) {
+    if (this.isOffline) {
+      throw new Error('Cannot update your profile while offline.');
     }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
+    }
+
+    const cleanName = String(name || '').trim();
+    if (!cleanName) {
+      throw new Error('Display name cannot be empty.');
+    }
+    if (cleanName.length > 80) {
+      throw new Error('Display name must be 80 characters or fewer.');
+    }
+
+    const user = auth.getCurrentUser();
+    if (!user?.id) {
+      throw new Error('You must be signed in to update your profile.');
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ name: cleanName })
+      .eq('id', user.id);
+
+    if (error) throw new Error(error.message || 'Failed to update display name');
     return true;
   },
 
@@ -451,130 +456,135 @@ export const api = {
   // Settings & Audit Logs
   // --------------------------------------------------------------------------
   async updateSettings(settingsData) {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase
-        .from('settings')
-        .upsert({
-          id: 1,
-          group_name: settingsData.groupName || 'Friends Expense Manager',
-          monthly_budget: settingsData.budget || 0,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) throw error;
-      await this.logAudit('UPDATE_SETTINGS', settingsData);
-      return true;
+    if (this.isOffline) {
+      throw new Error('Cannot update settings while offline.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
     }
 
-    const state = this.loadLocalCache();
-    state.budget = Number(settingsData.budget) || 0;
-    state.groupName = settingsData.groupName || state.groupName;
-    this.saveLocalCache(state);
+    const updatePayload = {
+      updated_at: new Date().toISOString(),
+    };
+    if (settingsData.groupName !== undefined) updatePayload.group_name = settingsData.groupName;
+    if (settingsData.budget !== undefined) updatePayload.monthly_budget = settingsData.budget;
+    if (settingsData.allowFriendsToAddExpenses !== undefined) {
+      updatePayload.allow_friends_to_add_expenses = settingsData.allowFriendsToAddExpenses;
+    }
+
+    const { error } = await supabase
+      .from('settings')
+      .update(updatePayload)
+      .eq('id', 1);
+
+    if (error) throw new Error(error.message || 'Failed to update settings');
     return true;
   },
 
   async fetchAuditLogs() {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
-        .from('audit_log')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+    if (!isSupabaseConfigured || !supabase) return [];
 
-      if (error) {
-        console.warn('Could not fetch audit logs:', error);
-        return [];
-      }
-      return data || [];
-    }
-    return [];
-  },
+    const { data, error } = await supabase
+      .from('audit_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
 
-  async logAudit(action, details = {}) {
-    const user = auth.getCurrentUser();
-    if (isSupabaseConfigured && supabase && user) {
-      try {
-        await supabase.from('audit_log').insert({
-          actor_id: user.id,
-          actor_name: user.name,
-          action,
-          details,
-        });
-      } catch (err) {
-        console.warn('Audit logging failed:', err);
-      }
+    if (error) {
+      console.warn('Could not fetch audit logs:', error);
+      return [];
     }
+    return data || [];
   },
 
   // --------------------------------------------------------------------------
-  // Realtime Subscriptions
+  // Realtime Subscriptions (Debounced 300ms, all related tables)
   // --------------------------------------------------------------------------
   subscribeToChanges(onUpdate) {
     if (!isSupabaseConfigured || !supabase) return () => {};
+
+    let debounceTimer = null;
+    const debouncedNotify = (table) => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        onUpdate(table);
+      }, 300);
+    };
 
     const channel = supabase
       .channel('fem_realtime_changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'expenses' },
-        () => onUpdate('expenses')
+        () => debouncedNotify('expenses')
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'expense_participants' },
+        () => debouncedNotify('expense_participants')
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'settlements' },
-        () => onUpdate('settlements')
+        () => debouncedNotify('settlements')
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
-        () => onUpdate('profiles')
+        () => debouncedNotify('profiles')
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'settings' },
-        () => onUpdate('settings')
+        () => debouncedNotify('settings')
       )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   },
 
   // --------------------------------------------------------------------------
-  // Danger Zone / Clear All Data
+  // Danger Zone / Clear All Data (Transactional Admin RPC)
   // --------------------------------------------------------------------------
   async resetAllData() {
-    if (isSupabaseConfigured && supabase) {
-      // Delete expenses and settlements (cascades participants)
-      await Promise.all([
-        supabase.from('settlements').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
-        supabase.from('expenses').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
-      ]);
-      await this.logAudit('RESET_ALL_DATA', { timestamp: new Date().toISOString() });
-      return true;
+    if (this.isOffline) {
+      throw new Error('Cannot reset data while offline.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
     }
 
-    const defaultState = {
-      version: 2,
-      friends: [
-        {
-          id: 'f-admin',
-          name: 'Admin',
-          loginId: 'admin',
-          role: 'admin',
-          mustChangePassword: false,
-          isActive: true,
-        },
-      ],
-      expenses: [],
-      settlements: [],
-      currentUserId: 'f-admin',
-      budget: 0,
-      groupName: 'Friends Expense Manager',
-      settings: { notificationsReadAt: null },
-    };
-    this.saveLocalCache(defaultState);
-    return true;
+    const { data, error } = await supabase.rpc('reset_all_data', {
+      p_confirmation: 'RESET DATA',
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to reset all data');
+    }
+    return data;
+  },
+
+  // --------------------------------------------------------------------------
+  // Backup Import (Transactional Admin RPC)
+  // --------------------------------------------------------------------------
+  async importBackup(backupJson) {
+    if (this.isOffline) {
+      throw new Error('Cannot import backup while offline.');
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Backend not configured.');
+    }
+
+    const { data, error } = await supabase.rpc('import_backup', {
+      p_data: backupJson,
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to import backup');
+    }
+    return data;
   },
 };

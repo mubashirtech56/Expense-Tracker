@@ -1001,6 +1001,11 @@ main {
   color: #64748b;
 }
 
+.badge--warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
 .friend-card__bottom {
   display: flex;
   align-items: center;
@@ -4171,3 +4176,110 @@ input[type="date"] {
   }
 }
 
+
+/* ==========================================================================
+   Utility & component helpers added during cleanup
+   ========================================================================== */
+
+.login-help--sub {
+  margin-top: 10px;
+  padding-top: 0;
+  border-top: 0;
+  font-size: 9.5px;
+}
+
+.unconfigured-guide {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--slate-bg);
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.offline-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  background: var(--orange-bg);
+  color: var(--orange-700);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.field--checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.field--checkbox label {
+  margin: 0;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settlement-row--history {
+  border-radius: var(--radius-md);
+}
+
+.notification-empty {
+  padding: 28px 16px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.modal__icon--warning {
+  background: var(--orange-bg);
+  color: var(--orange-700);
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.28);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  background: var(--slate-bg);
+}
+
+.sidebar-balance__val {
+  color: #fff;
+}
+
+.sidebar-balance__val.amount--positive {
+  color: #4ade80;
+}
+
+.sidebar-balance__val.amount--negative {
+  color: #fbbf24;
+}
+
+.sidebar-balance__val.amount--neutral {
+  color: #cbd5e1;
+}
+
+.expense-icon--snacks {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.badge--primary {
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
