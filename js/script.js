@@ -252,6 +252,8 @@ const initializeApp = async () => {
   const expensePayer = document.getElementById("expensePayer");
   const participantGrid = document.getElementById("participantGrid");
   const splitEquallyBtn = document.getElementById("splitEquallyBtn");
+  const sharedAmount = document.getElementById("sharedAmount");
+  const splitSharedAmountBtn = document.getElementById("splitSharedAmountBtn");
   const selectAllParticipants = document.getElementById("selectAllParticipants");
   const allocationBar = document.getElementById("allocationBar");
   const allocationAmount = document.getElementById("allocationAmount");
@@ -2059,13 +2061,12 @@ const initializeApp = async () => {
     }
   }
 
-  function splitEqually() {
-    const total = roundMoney(Number(expenseAmount?.value) || 0);
+  function splitAmount(amount) {
     const checked = Array.from(document.querySelectorAll(".js-participant-check:checked"));
-    if (!checked.length || total <= 0) return;
+    if (!checked.length || amount <= 0) return false;
 
-    const baseShare = Math.floor((total / checked.length) * 100) / 100;
-    let remainder = Math.round((total - baseShare * checked.length) * 100);
+    const baseShare = Math.floor((amount / checked.length) * 100) / 100;
+    let remainder = Math.round((amount - baseShare * checked.length) * 100);
 
     checked.forEach((box) => {
       const input = document.querySelector(`.js-participant-amount[data-friend-id="${box.value}"]`);
@@ -2080,6 +2081,22 @@ const initializeApp = async () => {
     });
 
     updateAllocation();
+    return true;
+  }
+
+  function splitEqually() {
+    splitAmount(roundMoney(Number(expenseAmount?.value) || 0));
+  }
+
+  function splitSharedAmount() {
+    const amount = roundMoney(Number(sharedAmount?.value) || 0);
+    if (!amount) {
+      showToast("Enter a shared amount to split.");
+      return;
+    }
+    if (!splitAmount(amount)) {
+      showToast("Select at least one friend to split the shared amount.");
+    }
   }
 
   function openExpenseModal(expenseId = null) {
@@ -2115,7 +2132,7 @@ const initializeApp = async () => {
       const active = getAllActiveFriends();
       const defaultPayerId = !auth.isAdmin() ? currentUser?.id : active[0]?.id;
       populatePayerOptions(defaultPayerId);
-      const defaultShares = new Map(active.map((f) => [f.id, 0]));
+      const defaultShares = new Map(active.filter((f) => f.role !== "admin").map((f) => [f.id, 0]));
       renderParticipantGrid(defaultShares);
     }
 
@@ -3211,6 +3228,7 @@ const initializeApp = async () => {
   });
 
   splitEquallyBtn?.addEventListener("click", splitEqually);
+  splitSharedAmountBtn?.addEventListener("click", splitSharedAmount);
   selectAllParticipants?.addEventListener("change", () => {
     const boxes = Array.from(document.querySelectorAll(".js-participant-check"));
     boxes.forEach((box) => {

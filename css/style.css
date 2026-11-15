@@ -1594,6 +1594,55 @@ input[type="date"] {
   gap: 7px;
 }
 
+.participants__split {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+.participants__split > label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.participants__split-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 116px;
+  height: 31px;
+  padding: 0 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.participants__split-control span {
+  color: var(--muted-light);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.participants__split-control input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.participants__split-control input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
 .participant {
   display: flex;
   align-items: center;
@@ -3258,6 +3307,10 @@ input[type="date"] {
   .participants__tools {
     justify-content: space-between;
     width: 100%;
+  }
+
+  .participants__split {
+    flex-wrap: wrap;
   }
 }
 

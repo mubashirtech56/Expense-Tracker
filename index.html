@@ -1181,6 +1181,15 @@
             </div>
           </div>
 
+          <div class="participants__split">
+            <label for="sharedAmount">Shared portion</label>
+            <div class="participants__split-control">
+              <span>Rs.</span>
+              <input type="number" id="sharedAmount" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
+            </div>
+            <button class="btn btn--soft btn--sm" type="button" id="splitSharedAmountBtn">Split shared</button>
+          </div>
+
           <div class="participants__grid" id="participantGrid"></div>
 
           <div class="allocation" id="allocationBar">
