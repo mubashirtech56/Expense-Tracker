@@ -75,7 +75,7 @@ flowchart TD
 ### Local Development
 ```bash
 # 1. Clone repository
-git clone https://github.com/<your-username>/friends-expense-manager.git
+git clone https://github.com/mubashirtech56/friends-expense-manager.git
 cd friends-expense-manager
 
 # 2. Install dependencies
